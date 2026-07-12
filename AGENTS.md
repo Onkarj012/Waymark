@@ -58,7 +58,8 @@ verbatim.
 | `theme/demo.html` | standalone design preview linked to the source CSS |
 | `.skills/waymark/SKILL.md` | how the agent uses the tool (source of truth) |
 | `.claude/skills/waymark` | symlink → `../../.skills/waymark` so Claude Code loads the skill in-repo |
-| `Dockerfile`, `railway.json` | container build + Railway deploy |
+| `Dockerfile` | container build (self-host anywhere that runs a container) |
+| `workers/` | Cloudflare Workers + D1 port of the server (TypeScript); a from-scratch, drop-in replacement the `waymark` CLI also talks to unchanged — see `workers/` and [`docs/self-hosting/cloudflare-workers.md`](docs/self-hosting/cloudflare-workers.md) |
 
 ## Build, run, test
 
@@ -151,7 +152,12 @@ regression tests alongside behavior changes.
 
 ## Deploy
 
-Railway, via the `Dockerfile` + `railway.json`. Mount a volume at `/data` (the
-image sets `DB_PATH=/data/waymark.db`), attach distinct content and
-control domains, and set the auth variables. Full steps are in
-`docs/self-hosting/railway.md`.
+Cloudflare Workers + D1 is the blessed path: two Workers (control + content)
+sharing one D1 database, each on its own domain — see `workers/` and
+[`docs/self-hosting/cloudflare-workers.md`](docs/self-hosting/cloudflare-workers.md)
+for setup, migrations, secrets, and the expiry-sweep cron trigger.
+
+The Go server also still runs as a container via the `Dockerfile` for anyone
+self-hosting outside Cloudflare: mount a volume at `/data` (the image sets
+`DB_PATH=/data/waymark.db`), attach distinct content and control domains, and
+set the auth variables.

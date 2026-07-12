@@ -15,8 +15,8 @@ for reports you intend to share, not for storing secrets.
 
 > **Giving this repository URL to an agent?** Start with
 > [Agent Setup](docs/agent-setup.md). It has separate, end-to-end checklists for
-> connecting a new device to an existing instance and deploying a new Railway
-> instance from scratch.
+> connecting a new device to an existing instance and deploying a new Cloudflare
+> Workers instance from scratch.
 
 ## Quick Start
 
@@ -40,7 +40,7 @@ If someone has already deployed Waymark, ask for its public HTTPS URL,
 then run:
 
 ```bash
-waymark login --server https://your-service.up.railway.app
+waymark login --server https://pages.example.com
 waymark status
 ```
 
@@ -51,33 +51,42 @@ device. The CLI receives a revocable 90-day token and saves it in
 check identifies the token, scopes, label, and expiry. Run login again to switch
 instances or replace a token.
 
-### 3. Or deploy and connect a new Railway instance
+### 3. Or deploy and connect a new Cloudflare Workers instance
 
-Create a Railway project from this repository, attach a volume at `/data`, and
-give the same service two domains: one for public content and one for the
-control plane. Set:
-
-```text
-WAYMARK_ADMIN_PASSCODE=<a long random owner secret>
-PUBLIC_BASE_URL=https://pages.example.com
-CONTROL_BASE_URL=https://your-service.up.railway.app
-```
-
-Railway supplies `PORT`; the container stores SQLite at
-`/data/waymark.db` and exposes `/healthz`. Published HTML is active, so
-the two origins are a security requirement even though both route to the same
-container.
-
-After Railway reports the deployment healthy, connect exactly as you would to
-an existing instance:
+Waymark's blessed deployment is two Cloudflare Workers (a control worker for
+the API/admin UI, a content worker for public pages) sharing one D1 database
+— the TypeScript source is in [`workers/`](workers). Create the D1 database,
+run its migration, set the admin passcode as a secret, and deploy both
+Workers:
 
 ```bash
-waymark login --server https://your-service.up.railway.app
+cd workers
+npm install
+npx wrangler login
+npx wrangler d1 create waymark   # copy the database_id into wrangler.*.toml
+npm run d1:migrate:remote
+npx wrangler secret put WAYMARK_ADMIN_PASSCODE -c wrangler.control.toml
+npm run deploy:control
+npm run deploy:content
+```
+
+Set `PUBLIC_BASE_URL` and `CONTROL_BASE_URL` in both `wrangler.*.toml` files to
+two distinct custom domains before deploying — published HTML is active, so
+the two origins are a security requirement even though both Workers share one
+database.
+
+After both Workers report healthy, connect exactly as you would to an
+existing instance:
+
+```bash
+waymark login --server https://pages.example.com
 waymark status
 ```
 
-See [the complete Railway guide](docs/self-hosting/railway.md) for agent-friendly
-deployment steps, backups, custom domains, upgrades, and production notes.
+See [the complete Cloudflare Workers guide](docs/self-hosting/cloudflare-workers.md)
+for agent-friendly deployment steps, the D1 schema, backups, custom domains,
+upgrades, and production notes. The Go server also still runs as a plain
+container via the `Dockerfile` for anyone self-hosting outside Cloudflare.
 
 ### 4. Publish
 
@@ -119,11 +128,13 @@ works without a fixed report template.
 
 ## How It Works
 
-- `cmd/server` runs the HTTP service.
+- `cmd/server` runs the HTTP service (Go + SQLite).
 - `cmd/waymark` manages login and pages.
 - `internal/store` persists page HTML and metadata in one SQLite database.
 - `internal/web` serves the authenticated API and public page URLs.
 - `theme/theme.css` is embedded into the server binary.
+- `workers/` is a from-scratch TypeScript port of the same server onto
+  Cloudflare Workers + D1 — same routes, same CLI, same theme.
 - `.skills/waymark` teaches agents how to publish accessible reports.
 
 Themed pages store body HTML and are wrapped by the server. Raw pages store and
