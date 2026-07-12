@@ -34,7 +34,7 @@ func TestDeviceAuthorizationStoresHashesAndConsumesOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token := APIToken{ID: "token", TokenHash: testHash("cpages_public.raw-token-secret"), DisplayPrefix: "cpages_public", DeviceLabel: grant.DeviceLabel, Scopes: grant.Scopes, CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}
+	token := APIToken{ID: "token", TokenHash: testHash("waymark_public.raw-token-secret"), DisplayPrefix: "waymark_public", DeviceLabel: grant.DeviceLabel, Scopes: grant.Scopes, CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}
 	if _, err := st.PollDeviceAuthorization(grant.DeviceCodeHash, grant.DeviceSecretHash, now, token); err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestDeviceAuthorizationStoresHashesAndConsumesOnce(t *testing.T) {
 		t.Fatalf("second consume error = %v, want ErrGrantConsumed", err)
 	}
 
-	for _, raw := range []string{"raw-device-code", "raw-device-secret", "ABCD-EFGH", "cpages_public.raw-token-secret"} {
+	for _, raw := range []string{"raw-device-code", "raw-device-secret", "ABCD-EFGH", "waymark_public.raw-token-secret"} {
 		var count int
 		if err := st.db.QueryRow(`SELECT
 			(SELECT count(*) FROM device_authorizations WHERE device_code_hash = ? OR device_secret_hash = ? OR user_code_hash = ?) +
@@ -173,7 +173,7 @@ func TestAuthScannersRejectMalformedTimestamps(t *testing.T) {
 
 	t.Run("api token", func(t *testing.T) {
 		_, err := st.db.Exec(`INSERT INTO api_tokens (id, token_hash, display_prefix, device_label, scopes, created_at, expires_at)
-			VALUES ('bad-token-time', 'token-time', 'cpages_bad', 'device', 'pages:read', 'not-a-time', ?)`, future)
+			VALUES ('bad-token-time', 'token-time', 'waymark_bad', 'device', 'pages:read', 'not-a-time', ?)`, future)
 		if err != nil {
 			t.Fatal(err)
 		}

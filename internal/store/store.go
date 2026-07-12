@@ -1,4 +1,4 @@
-// Package store is the SQLite-backed persistence layer for Columbia Pages.
+// Package store is the SQLite-backed persistence layer for Waymark.
 // HTML is stored inline in the database (pages are small text documents). Back
 // up the main database together with its WAL state during a write pause.
 package store

@@ -7,7 +7,7 @@
 # Build output
 /bin/
 /server
-/cpages
+/waymark
 /out/
 
 # Local env + scratch

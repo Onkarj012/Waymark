@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davis7dotsh/columbia-pages/internal/store"
+	"github.com/Onkarj012/Waymark/internal/store"
 )
 
 const (
@@ -23,8 +23,8 @@ const (
 
 var adminPage = template.Must(template.New("admin").Parse(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{.Title}} - Columbia Pages</title><link rel="stylesheet" href="/admin/style.css"></head>
-<body><main><header><a href="/admin/tokens">Columbia Pages</a><span>Control</span></header>{{template "content" .}}</main></body></html>`))
+<title>{{.Title}} - Waymark</title><link rel="stylesheet" href="/admin/style.css"></head>
+<body><main><header><a href="/admin/tokens">Waymark</a><span>Control</span></header>{{template "content" .}}</main></body></html>`))
 
 const adminCSS = `:root{color-scheme:light dark;font:16px/1.5 system-ui,sans-serif}body{margin:0;background:#f5f6f7;color:#17191c}main{max-width:42rem;margin:3rem auto;padding:0 1rem}header{display:flex;justify-content:space-between;margin-bottom:2rem}section{background:#fff;border:1px solid #dfe2e5;border-radius:6px;padding:1.5rem;margin-bottom:1rem}label{display:block;font-weight:600;margin:.75rem 0 .25rem}input{box-sizing:border-box;width:100%;padding:.65rem;border:1px solid #a9afb5;border-radius:4px}button{padding:.65rem 1rem;border:0;border-radius:4px;background:#1769aa;color:#fff;font-weight:600;cursor:pointer}.danger{background:#a62b2b}.actions{display:flex;gap:.75rem;margin-top:1rem}.muted{color:#687078;font-size:.9rem}code{font-family:ui-monospace,monospace}@media(prefers-color-scheme:dark){body{background:#111315;color:#e8eaed}section{background:#191c1f;border-color:#34393e}input{background:#111315;color:#fff;border-color:#596169}a{color:#77bdf2}.muted{color:#aab0b6}}`
 
@@ -249,9 +249,9 @@ func (s *Server) adminSession(r *http.Request) (*store.AdminSession, string, err
 
 func (s *Server) adminCookieName() string {
 	if s.secureCookie {
-		return "__Host-cpages_admin"
+		return "__Host-waymark_admin"
 	}
-	return "cpages_admin"
+	return "waymark_admin"
 }
 
 func (s *Server) clearAdminCookie(w http.ResponseWriter) {

@@ -1,6 +1,6 @@
 # Contributing
 
-Columbia Pages is intentionally small. Prefer focused changes that preserve the
+Waymark is intentionally small. Prefer focused changes that preserve the
 single-binary server, SQLite storage, themed-versus-raw contract, and agent-
 friendly CLI behavior.
 

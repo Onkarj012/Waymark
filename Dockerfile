@@ -19,7 +19,7 @@ COPY --from=build /out/server /app/server
 # SQLite database lives on a mounted volume (Railway mounts it at /data, owned
 # by root — so the server runs as root to be able to write there).
 ENV PORT=8080 \
-    DB_PATH=/data/columbia-pages.db
+    DB_PATH=/data/waymark.db
 
 EXPOSE 8080
 CMD ["/app/server"]

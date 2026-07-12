@@ -1,11 +1,11 @@
 # Agent Setup
 
-Use this guide when a user gives you the Columbia Pages repository URL and asks
+Use this guide when a user gives you the Waymark repository URL and asks
 you to set it up. First determine which path applies:
 
 1. **Existing instance:** the server is already deployed and this machine needs
    the CLI, skill, and a device token.
-2. **New instance:** Columbia Pages must be deployed to Railway before a device
+2. **New instance:** Waymark must be deployed to Railway before a device
    can connect.
 
 Ask only one setup question at a time. Never ask the user to paste the admin
@@ -17,14 +17,14 @@ browser UI.
 Clone or update the repository, preserving any local work:
 
 ```bash
-git clone https://github.com/davis7dotsh/columbia-pages.git
-cd columbia-pages
+git clone https://github.com/Onkarj012/Waymark.git
+cd waymark
 git switch main
 git pull --ff-only origin main
 ```
 
 If the checkout already exists, inspect `git status --short --branch` first and
-do not discard local changes. Columbia Pages requires Go 1.25 or newer. Install
+do not discard local changes. Waymark requires Go 1.25 or newer. Install
 Go from [go.dev/dl](https://go.dev/dl/) when it is missing or outdated.
 
 Validate and install the CLI:
@@ -32,16 +32,16 @@ Validate and install the CLI:
 ```bash
 go test -count=1 ./...
 mkdir -p ~/.local/bin
-go build -o ~/.local/bin/cpages ./cmd/cpages
+go build -o ~/.local/bin/waymark ./cmd/waymark
 ```
 
 Ensure `~/.local/bin` is on `PATH`, then install the repository skill by linking
-`.skills/columbia-pages` into the agent's skill directory. Prefer the universal
+`.skills/waymark` into the agent's skill directory. Prefer the universal
 location:
 
 ```bash
 mkdir -p ~/.agents/skills
-ln -s "$(pwd)/.skills/columbia-pages" ~/.agents/skills/columbia-pages
+ln -s "$(pwd)/.skills/waymark" ~/.agents/skills/waymark
 ```
 
 If that path already exists, inspect it first. Update an existing symlink, but
@@ -54,7 +54,7 @@ Obtain the instance's public or control HTTPS URL from the owner. Do not ask for
 the admin passcode. Run:
 
 ```bash
-cpages login --server <instance-url> --device-name "<clear machine name>"
+waymark login --server <instance-url> --device-name "<clear machine name>"
 ```
 
 The CLI discovers the control origin, prints an activation URL and code, and
@@ -63,7 +63,7 @@ checks the device label and requested scopes, and approves it. After approval,
 verify:
 
 ```bash
-cpages status
+waymark status
 ```
 
 The result must say `authenticated`, identify a `device token`, and show the
@@ -87,23 +87,23 @@ access to the repository.
    domain, use a second generated domain when Railway makes one available.
 5. Have the owner create and retain a high-entropy admin passcode in their
    password manager, then set it directly in Railway as
-   `COLUMBIA_PAGES_ADMIN_PASSCODE`. The agent must not receive this value.
+   `WAYMARK_ADMIN_PASSCODE`. The agent must not receive this value.
 6. Set the non-secret variables:
 
    ```text
    PUBLIC_BASE_URL=https://<public-content-domain>
    CONTROL_BASE_URL=https://<control-domain>
-   COLUMBIA_PAGES_TOKEN_TTL_DAYS=90
+   WAYMARK_TOKEN_TTL_DAYS=90
    ```
 
 7. Do not set `PORT`; Railway supplies it. The container uses
-   `/data/columbia-pages.db` automatically.
+   `/data/waymark.db` automatically.
 8. Deploy from the Railway dashboard or link the checkout and upload it:
 
    ```bash
    railway login
    railway link
-   railway up --service columbia-pages
+   railway up --service waymark
    ```
 
 9. Wait for the deployment to report success and verify both domains reach
@@ -121,12 +121,12 @@ For backups, upgrades, rollback, and domain details, continue with
 
 ## Verify End To End
 
-After `cpages status` succeeds, publish a small themed page:
+After `waymark status` succeeds, publish a small themed page:
 
 ```bash
-cpages create --title "Columbia Pages smoke test" - <<'HTML'
+waymark create --title "Waymark smoke test" - <<'HTML'
 <header>
-  <h1>Columbia Pages smoke test</h1>
+  <h1>Waymark smoke test</h1>
   <p class="dek">CLI, authentication, storage, theme, and public routing are working.</p>
 </header>
 <section>
@@ -140,7 +140,7 @@ Open the returned public URL and verify that the themed page loads. Setup is
 complete only when:
 
 - the Railway deployment is healthy, when this was a new deployment;
-- `cpages status` reports an authenticated device token;
+- `waymark status` reports an authenticated device token;
 - the smoke page loads from the public origin; and
 - the agent reports the instance URL, device label, scopes, and smoke-page URL
   without printing credentials.

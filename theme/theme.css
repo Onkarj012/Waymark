@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Columbia Pages — House Theme
+   Waymark — House Theme
    Cold, precise, denotative. A lit field with sparse machined furniture,
    black circulation, and signal-only color. Geist for text, mono for code.
    Light is the house default; a neutral near-black dark register is opt-in
@@ -322,12 +322,12 @@ footer {
   font-size: .82rem; color: var(--text-faint);
   display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: space-between;
 }
-.columbia-pages-credit { justify-content: center; text-align: center; }
-.columbia-pages-credit a {
+.waymark-credit { justify-content: center; text-align: center; }
+.waymark-credit a {
   color: inherit;
   text-decoration-color: transparent;
 }
-.columbia-pages-credit a:hover { color: var(--text-muted); text-decoration-color: currentColor; }
+.waymark-credit a:hover { color: var(--text-muted); text-decoration-color: currentColor; }
 
 /* ----- theme toggle (top-right, injected by the server) ----- */
 .theme-toggle {

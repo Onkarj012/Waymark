@@ -1,16 +1,16 @@
-# Columbia Pages
+# Waymark
 
-Columbia Pages is a small self-hosted service for publishing clean HTML reports
+Waymark is a small self-hosted service for publishing clean HTML reports
 and getting back a shareable URL. It includes a Go server, SQLite storage, the
-`cpages` CLI, a built-in report theme, and an agent skill.
+`waymark` CLI, a built-in report theme, and an agent skill.
 
 ```text
-agent -> cpages CLI -> authenticated API -> SQLite
+agent -> waymark CLI -> authenticated API -> SQLite
                                       |
 browser <- public unguessable URL <---+
 ```
 
-Published pages are public to anyone who has their URL. Columbia Pages is best
+Published pages are public to anyone who has their URL. Waymark is best
 for reports you intend to share, not for storing secrets.
 
 > **Giving this repository URL to an agent?** Start with
@@ -25,29 +25,29 @@ for reports you intend to share, not for storing secrets.
 Install with the latest patch release of Go 1.25 or newer:
 
 ```bash
-go install github.com/davis7dotsh/columbia-pages/cmd/cpages@latest
+go install github.com/Onkarj012/Waymark/cmd/waymark@latest
 ```
 
 Make sure `$(go env GOPATH)/bin` is on `PATH`, then confirm the install:
 
 ```bash
-cpages version
+waymark version
 ```
 
 ### 2. Connect to an existing instance
 
-If someone has already deployed Columbia Pages, ask for its public HTTPS URL,
+If someone has already deployed Waymark, ask for its public HTTPS URL,
 then run:
 
 ```bash
-cpages login --server https://your-service.up.railway.app
-cpages status
+waymark login --server https://your-service.up.railway.app
+waymark status
 ```
 
 `login` prints an activation URL and short code. Open the URL, sign in with the
 deployment's admin passcode, review the requested scopes, and approve the
 device. The CLI receives a revocable 90-day token and saves it in
-`~/.config/columbia-pages/config.json` with mode `0600`. A successful status
+`~/.config/waymark/config.json` with mode `0600`. A successful status
 check identifies the token, scopes, label, and expiry. Run login again to switch
 instances or replace a token.
 
@@ -58,13 +58,13 @@ give the same service two domains: one for public content and one for the
 control plane. Set:
 
 ```text
-COLUMBIA_PAGES_ADMIN_PASSCODE=<a long random owner secret>
+WAYMARK_ADMIN_PASSCODE=<a long random owner secret>
 PUBLIC_BASE_URL=https://pages.example.com
 CONTROL_BASE_URL=https://your-service.up.railway.app
 ```
 
 Railway supplies `PORT`; the container stores SQLite at
-`/data/columbia-pages.db` and exposes `/healthz`. Published HTML is active, so
+`/data/waymark.db` and exposes `/healthz`. Published HTML is active, so
 the two origins are a security requirement even though both route to the same
 container.
 
@@ -72,8 +72,8 @@ After Railway reports the deployment healthy, connect exactly as you would to
 an existing instance:
 
 ```bash
-cpages login --server https://your-service.up.railway.app
-cpages status
+waymark login --server https://your-service.up.railway.app
+waymark status
 ```
 
 See [the complete Railway guide](docs/self-hosting/railway.md) for agent-friendly
@@ -82,14 +82,14 @@ deployment steps, backups, custom domains, upgrades, and production notes.
 ### 4. Publish
 
 ```bash
-cpages create --title "First report" - <<'HTML'
+waymark create --title "First report" - <<'HTML'
 <header>
   <h1>First report</h1>
   <p class="dek">A small report published from the command line.</p>
 </header>
 <section>
   <h2>Summary</h2>
-  <p>Columbia Pages is ready.</p>
+  <p>Waymark is ready.</p>
 </section>
 HTML
 ```
@@ -99,19 +99,19 @@ automatically.
 
 ## Agent Skill
 
-The source skill is [`.skills/columbia-pages`](.skills/columbia-pages). From a
+The source skill is [`.skills/waymark`](.skills/waymark). From a
 clone, link it into the skill directory used by your agent:
 
 ```bash
-git clone https://github.com/davis7dotsh/columbia-pages.git
-cd columbia-pages
+git clone https://github.com/Onkarj012/Waymark.git
+cd waymark
 mkdir -p ~/.agents/skills
-ln -s "$(pwd)/.skills/columbia-pages" ~/.agents/skills/columbia-pages
+ln -s "$(pwd)/.skills/waymark" ~/.agents/skills/waymark
 ```
 
 For a product-specific location, replace `~/.agents/skills` in both commands
 with `~/.codex/skills` or `~/.claude/skills`. The committed
-`.claude/skills/columbia-pages` symlink also makes the skill available to Claude
+`.claude/skills/waymark` symlink also makes the skill available to Claude
 Code while working in this repository.
 
 The skill treats the theme as a flexible component vocabulary. Semantic HTML
@@ -120,11 +120,11 @@ works without a fixed report template.
 ## How It Works
 
 - `cmd/server` runs the HTTP service.
-- `cmd/cpages` manages login and pages.
+- `cmd/waymark` manages login and pages.
 - `internal/store` persists page HTML and metadata in one SQLite database.
 - `internal/web` serves the authenticated API and public page URLs.
 - `theme/theme.css` is embedded into the server binary.
-- `.skills/columbia-pages` teaches agents how to publish accessible reports.
+- `.skills/waymark` teaches agents how to publish accessible reports.
 
 Themed pages store body HTML and are wrapped by the server. Raw pages store and
 serve a complete document verbatim.
@@ -132,15 +132,15 @@ serve a complete document verbatim.
 ## CLI
 
 ```text
-cpages login   [--server URL] [--device-name NAME] [--read-only]
-cpages logout
-cpages status
+waymark login   [--server URL] [--device-name NAME] [--read-only]
+waymark logout
+waymark status
 
-cpages create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
-cpages list    [--limit N] [--json]
-cpages get     [--json] <id>
-cpages update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
-cpages delete  <id>
+waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
+waymark list    [--limit N] [--json]
+waymark get     [--json] <id>
+waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
+waymark delete  <id>
 ```
 
 Put flags before positional arguments. Use `-` to read page HTML from stdin.
@@ -152,7 +152,7 @@ Put flags before positional arguments. Use `-` to read page HTML from stdin.
 - Public page IDs contain roughly 71 bits of randomness.
 - Page HTML is trusted publisher content and is not sanitized.
 - Raw pages may execute JavaScript.
-- CLI credentials are stored in `~/.config/columbia-pages/config.json` with
+- CLI credentials are stored in `~/.config/waymark/config.json` with
   mode `0600`.
 
 Read [SECURITY.md](SECURITY.md) before exposing an instance publicly. Browser
@@ -173,18 +173,18 @@ HTTP is accepted only for loopback development:
 
 **Terminal 1:**
 ```bash
-export COLUMBIA_PAGES_ADMIN_PASSCODE=dev-admin-secret
+export WAYMARK_ADMIN_PASSCODE=dev-admin-secret
 export PUBLIC_BASE_URL=http://pages.localhost:8080
 export CONTROL_BASE_URL=http://control.localhost:8080
-export DB_PATH=/tmp/columbia-pages.db
+export DB_PATH=/tmp/waymark.db
 go run ./cmd/server
 ```
 
 In another terminal:
 
 ```bash
-export COLUMBIA_PAGES_CONFIG_DIR=/tmp/columbia-pages-config
-cpages login --server http://pages.localhost:8080
+export WAYMARK_CONFIG_DIR=/tmp/waymark-config
+waymark login --server http://pages.localhost:8080
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for repository
@@ -192,4 +192,4 @@ guidance.
 
 ## License
 
-Columbia Pages is available under the [MIT License](LICENSE).
+Waymark is available under the [MIT License](LICENSE).

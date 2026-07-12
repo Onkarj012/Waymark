@@ -1,0 +1,4 @@
+interface:
+  display_name: "Waymark"
+  short_description: "Publish polished HTML reports with waymark"
+  default_prompt: "Use $waymark to publish this analysis as a shareable page."

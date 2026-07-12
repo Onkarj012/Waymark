@@ -1,10 +1,10 @@
-// Command server runs the Columbia Pages HTTP service.
+// Command server runs the Waymark HTTP service.
 //
 // Configuration (environment variables):
 //
-//	COLUMBIA_PAGES_ADMIN_PASSCODE owner secret for browser approval
-//	COLUMBIA_PAGES_TOKEN_TTL_DAYS  (default 90, range 1..365)
-//	DB_PATH                  SQLite file path        (default ./columbia-pages.db)
+//	WAYMARK_ADMIN_PASSCODE owner secret for browser approval
+//	WAYMARK_TOKEN_TTL_DAYS  (default 90, range 1..365)
+//	DB_PATH                  SQLite file path        (default ./waymark.db)
 //	PORT                     listen port             (default 8080)
 //	PUBLIC_BASE_URL          content origin, e.g. https://pages.example.com
 //	CONTROL_BASE_URL         control origin for API and browser authorization
@@ -22,14 +22,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davis7dotsh/columbia-pages/internal/store"
-	"github.com/davis7dotsh/columbia-pages/internal/web"
+	"github.com/Onkarj012/Waymark/internal/store"
+	"github.com/Onkarj012/Waymark/internal/web"
 )
 
 func main() {
-	dbPath := getenv("DB_PATH", "./columbia-pages.db")
+	dbPath := getenv("DB_PATH", "./waymark.db")
 	port := getenv("PORT", "8080")
-	tokenTTLDays, err := parseIntEnv("COLUMBIA_PAGES_TOKEN_TTL_DAYS", 90)
+	tokenTTLDays, err := parseIntEnv("WAYMARK_TOKEN_TTL_DAYS", 90)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func main() {
 	go sweepExpired(ctx, st, time.Hour)
 
 	handler, err := web.NewConfigured(st, web.Config{
-		AdminPasscode:    os.Getenv("COLUMBIA_PAGES_ADMIN_PASSCODE"),
+		AdminPasscode:    os.Getenv("WAYMARK_ADMIN_PASSCODE"),
 		PublicBaseURL:    os.Getenv("PUBLIC_BASE_URL"),
 		ControlBaseURL:   os.Getenv("CONTROL_BASE_URL"),
 		TokenTTLDays:     tokenTTLDays,
@@ -66,7 +66,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("columbia-pages listening on :%s (db=%s)", port, dbPath)
+		log.Printf("waymark listening on :%s (db=%s)", port, dbPath)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}

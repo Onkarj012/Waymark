@@ -1,4 +1,0 @@
-interface:
-  display_name: "Columbia Pages"
-  short_description: "Publish polished HTML reports with cpages"
-  default_prompt: "Use $columbia-pages to publish this analysis as a shareable page."

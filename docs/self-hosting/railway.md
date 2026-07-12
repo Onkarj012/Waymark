@@ -1,6 +1,6 @@
 # Self-Host on Railway
 
-Railway is the blessed deployment path for Columbia Pages. The service is one
+Railway is the blessed deployment path for Waymark. The service is one
 container, one persistent volume, and two domains routed to that container.
 
 Agents starting from the repository URL should follow
@@ -10,8 +10,8 @@ continues here for Railway operations and maintenance.
 ## Prerequisites
 
 - A Railway account
-- A GitHub repository containing Columbia Pages
-- The `cpages` CLI, or the latest patch release of Go 1.25+ to install it
+- A GitHub repository containing Waymark
+- The `waymark` CLI, or the latest patch release of Go 1.25+ to install it
 
 ## Deploy
 
@@ -29,14 +29,14 @@ content and cannot safely share an origin with an authenticated admin UI.
 ## Variables
 
 ```text
-COLUMBIA_PAGES_ADMIN_PASSCODE=<at least 32 random bytes>
-COLUMBIA_PAGES_TOKEN_TTL_DAYS=90
+WAYMARK_ADMIN_PASSCODE=<at least 32 random bytes>
+WAYMARK_TOKEN_TTL_DAYS=90
 PUBLIC_BASE_URL=https://pages.example.com
 CONTROL_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 ```
 
 Do not set `PORT`; Railway supplies it. The container defaults `DB_PATH` to
-`/data/columbia-pages.db`. Generate the admin passcode with:
+`/data/waymark.db`. Generate the admin passcode with:
 
 ```bash
 openssl rand -base64 48
@@ -44,16 +44,16 @@ openssl rand -base64 48
 
 Never commit the passcode or paste it into an agent prompt.
 
-Railway injects the environment metadata that lets Columbia Pages trust the
+Railway injects the environment metadata that lets Waymark trust the
 edge-supplied client IP for abuse limits. Direct and other self-hosted
 deployments ignore forwarded IP headers by default.
 
 ## Connect The CLI
 
 ```bash
-go install github.com/davis7dotsh/columbia-pages/cmd/cpages@latest
-cpages login --server https://pages.example.com
-cpages status
+go install github.com/Onkarj012/Waymark/cmd/waymark@latest
+waymark login --server https://pages.example.com
+waymark status
 ```
 
 Open the printed activation URL, sign in with the admin passcode, and approve
@@ -63,13 +63,13 @@ the CLI. `status` reports the token label, scopes, and expiry.
 ## Smoke Test
 
 ```bash
-cpages create --title "Railway smoke test" - <<'HTML'
+waymark create --title "Railway smoke test" - <<'HTML'
 <header><h1>Railway smoke test</h1></header>
 <p>The service, CLI, database, and public route are working.</p>
 HTML
 ```
 
-Open the printed URL, then remove the page with `cpages delete <id>`.
+Open the printed URL, then remove the page with `waymark delete <id>`.
 
 ## Domain Layout
 
@@ -80,7 +80,7 @@ origins. The server returns HTTP 421 when a route arrives on the wrong host.
 
 ## Back Up The Database
 
-SQLite runs in WAL mode. Do not copy only `columbia-pages.db` while the service
+SQLite runs in WAL mode. Do not copy only `waymark.db` while the service
 is actively writing; committed data may still be in sidecar files.
 
 Use Railway's volume backup feature:
@@ -91,7 +91,7 @@ Use Railway's volume backup feature:
 4. Test a restore before relying on it.
 
 Restoring a Railway backup stages a replacement volume at the same mount path.
-Review the staged change, deploy it, and verify `/healthz` and `cpages status`.
+Review the staged change, deploy it, and verify `/healthz` and `waymark status`.
 
 ## Upgrade
 
@@ -103,14 +103,14 @@ For a service deployed from the Railway CLI, upload the current checkout:
 
 ```bash
 railway status
-railway up --service columbia-pages
+railway up --service waymark
 ```
 
 If the checkout is not linked yet:
 
 ```bash
-railway link --project "Columbia Pages" --environment production --service columbia-pages
-railway up --service columbia-pages
+railway link --project "Waymark" --environment production --service waymark
+railway up --service waymark
 ```
 
 Do not use `railway redeploy` for an upgrade; it deploys the previously uploaded
@@ -130,15 +130,15 @@ for control:
 1. Take a volume backup.
 2. Keep `PUBLIC_BASE_URL=https://<your-custom-domain>`.
 3. Add `CONTROL_BASE_URL=https://<service>.up.railway.app`.
-4. Add a new high-entropy `COLUMBIA_PAGES_ADMIN_PASSCODE`.
-5. Remove the obsolete `COLUMBIA_PAGES_PASSCODE` and
-   `COLUMBIA_PAGES_ALLOW_LEGACY_AUTH` variables if they exist.
-6. Run `railway up --service columbia-pages` from the repository root.
+4. Add a new high-entropy `WAYMARK_ADMIN_PASSCODE`.
+5. Remove the obsolete `WAYMARK_PASSCODE` and
+   `WAYMARK_ALLOW_LEGACY_AUTH` variables if they exist.
+6. Run `railway up --service waymark` from the repository root.
 7. Wait for `/healthz`, install the updated CLI on each machine, and run:
 
    ```bash
-   cpages login --server https://<your-custom-domain>
-   cpages status
+   waymark login --server https://<your-custom-domain>
+   waymark status
    ```
 
 8. Approve each device at the generated Railway control domain. Existing pages
@@ -162,7 +162,7 @@ After the repository is public, publish a Railway Template containing:
 - One service sourced from this repository
 - A generated control domain and a separately configured content domain
 - A volume mounted at `/data`
-- `COLUMBIA_PAGES_ADMIN_PASSCODE=${{secret(64)}}`
+- `WAYMARK_ADMIN_PASSCODE=${{secret(64)}}`
 - `CONTROL_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}`
 - A prompted `PUBLIC_BASE_URL` for the distinct content domain
 

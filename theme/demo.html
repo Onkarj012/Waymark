@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Service health review - Columbia Pages</title>
+<title>Service health review - Waymark</title>
 <link rel="stylesheet" href="./theme.css">
-<script>(function(){try{var t=localStorage.getItem("cpages-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem("waymark-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
 </head>
 <body>
 <button class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
@@ -28,7 +28,7 @@
   <div class="page-content">
     <header>
       <h1>Service health review</h1>
-      <p class="dek">A compact example of the Columbia Pages theme for operational reporting.</p>
+      <p class="dek">A compact example of the Waymark theme for operational reporting.</p>
       <div class="meta">
         <span>Example data</span>
         <span class="sep">|</span>
@@ -102,7 +102,7 @@
         <li><strong>Document the rollback check.</strong> Make the release decision observable and repeatable.</li>
         <li><strong>Review capacity assumptions.</strong> Confirm the next traffic threshold before launch.</li>
       </ul>
-      <pre><code>cpages create --title "Service health review" report.html</code></pre>
+      <pre><code>waymark create --title "Service health review" report.html</code></pre>
     </section>
 
     <section id="decision">
@@ -117,12 +117,12 @@
     </section>
 
     <footer>
-      <span>Columbia Pages theme demo</span>
+      <span>Waymark theme demo</span>
       <span>Synthetic example data</span>
     </footer>
   </div>
 </div>
 </main>
-<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle"),mq=matchMedia("(prefers-color-scheme: dark)");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("cpages-theme",t);}catch(e){}});try{if(!localStorage.getItem("cpages-theme"))mq.addEventListener("change",function(e){apply(e.matches?"dark":"light");});}catch(e){}})();</script>
+<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle"),mq=matchMedia("(prefers-color-scheme: dark)");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});try{if(!localStorage.getItem("waymark-theme"))mq.addEventListener("change",function(e){apply(e.matches?"dark":"light");});}catch(e){}})();</script>
 </body>
 </html>
