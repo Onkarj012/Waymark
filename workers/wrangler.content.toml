@@ -1,0 +1,30 @@
+# Content worker — public page views (GET /p/{id}), the house theme
+# (GET /theme.css), and the index/discovery routes. Must be deployed on a
+# distinct origin/domain from wrangler.control.toml's worker (see AGENTS.md
+# "Conventions & invariants"). This worker never handles a bearer token or
+# admin cookie.
+#
+# Setup: docs/self-hosting/cloudflare-workers.md
+
+name = "waymark-content"
+main = "src/content.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "waymark"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+PUBLIC_BASE_URL = "https://pages.example.com"
+CONTROL_BASE_URL = "https://control.example.com"
+
+# Attach the content domain once it's added to your Cloudflare zone, e.g.:
+# [[routes]]
+# pattern = "pages.example.com/*"
+# custom_domain = true

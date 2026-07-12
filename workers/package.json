@@ -1,0 +1,28 @@
+{
+  "name": "waymark-workers",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cloudflare Workers + D1 port of the Waymark control and content servers.",
+  "scripts": {
+    "postinstall": "node scripts/embed-theme.mjs",
+    "generate:theme": "node scripts/embed-theme.mjs",
+    "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:control": "wrangler dev -c wrangler.control.toml",
+    "dev:content": "wrangler dev -c wrangler.content.toml",
+    "deploy:control": "npm run generate:theme && wrangler deploy -c wrangler.control.toml",
+    "deploy:content": "npm run generate:theme && wrangler deploy -c wrangler.content.toml",
+    "d1:migrate:local": "wrangler d1 migrations apply waymark --local -c wrangler.control.toml",
+    "d1:migrate:remote": "wrangler d1 migrations apply waymark --remote -c wrangler.control.toml"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260712.1",
+    "@types/node": "^26.1.1",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.0.0"
+  }
+}
