@@ -204,6 +204,32 @@ describe("device authorizations", () => {
     expect(replay.kind).toBe("consumed");
   });
 
+  it("poll: a second poll against an already-redeemed grant is rejected and mints no extra token", async () => {
+    // Simulates the race the atomic claim in pollDeviceAuthorization guards
+    // against: two pollers hit an approved grant, but only the first request
+    // whose claiming UPDATE actually flips status='approved' -> 'consumed'
+    // may mint a token. Here the first poll wins and redeems the grant; the
+    // second poll (standing in for the loser of a concurrent race, or a
+    // simple replay) must see the grant already consumed, get the same
+    // terminal outcome Go returns for ErrGrantConsumed, and must not cause a
+    // second token row to be inserted.
+    const grant = makeGrant({ id: "race-grant", deviceCodeHash: "race-code", userCodeHash: "race-user" });
+    await createDeviceAuthorization(db, grant, 5, 50);
+    await decideDeviceAuthorization(db, grant.userCodeHash, "approved", nowIso());
+
+    const first = await pollDeviceAuthorization(db, grant.deviceCodeHash, grant.deviceSecretHash, nowIso(), makeToken({ id: "winner" }));
+    expect(first.kind).toBe("issued");
+
+    const second = await pollDeviceAuthorization(db, grant.deviceCodeHash, grant.deviceSecretHash, nowIso(), makeToken({ id: "loser", tokenHash: "loser-hash" }));
+    expect(second.kind).toBe("consumed");
+
+    const tokens = await listApiTokens(db);
+    const raceTokens = tokens.filter((t) => t.deviceLabel === grant.deviceLabel && (t.id === "winner" || t.id === "loser"));
+    expect(raceTokens).toHaveLength(1);
+    expect(raceTokens[0]?.id).toBe("winner");
+    expect(await apiTokenByHash(db, "loser-hash", nowIso())).toBeNull();
+  });
+
   it("poll: denied and expired grants report their terminal state", async () => {
     const denied = makeGrant({ id: "denied", deviceCodeHash: "denied-code", userCodeHash: "denied-user" });
     await createDeviceAuthorization(db, denied, 5, 50);

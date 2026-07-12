@@ -6,14 +6,21 @@
 // D1 does not expose interactive multi-statement transactions to Workers code
 // the way database/sql's Tx does (batch() runs a fixed list of statements,
 // not "read a value, decide in JS, then write" the way Go's CreateDeviceAuthorization
-// or PollDeviceAuthorization do). Each method below performs its guard-check
-// SELECT and its write as separate sequential statements rather than a single
-// atomic transaction. For a single-owner self-hosted deployment (the
+// or PollDeviceAuthorization do). Most methods below perform their guard-check
+// SELECT and their write as separate sequential statements rather than a
+// single atomic transaction. For a single-owner self-hosted deployment (the
 // documented use case) this is an accepted, intentional gap: the practical
-// race window (two devices polling the same grant, or two device-code
-// requests from the same source, within the same request tick) does not
-// threaten confidentiality or integrity, only (at most) an off-by-one on a
-// rate/limit counter.
+// race window (two device-code requests from the same source within the same
+// request tick) does not threaten confidentiality or integrity, only (at
+// most) an off-by-one on a rate/limit counter.
+//
+// pollDeviceAuthorization's approved -> consumed transition is the one path
+// where a race would mint duplicate valid tokens, so it does not rely on that
+// accepted gap: the grant is claimed via a single guarded UPDATE ... WHERE
+// status = 'approved' before the token INSERT runs, so only the caller whose
+// UPDATE actually changes a row ever mints a token. That single statement is
+// atomic on D1/SQLite the same way Go's transaction is, so this path is
+// race-safe without needing a multi-statement transaction.
 
 import type {
   APIToken,
@@ -245,9 +252,11 @@ export async function decideDeviceAuthorization(
 }
 
 /** Advances the persisted polling state. When the grant is approved, it
- * creates the token and consumes the grant. Ports PollDeviceAuthorization
- * from internal/store/auth.go (see the file-level note on D1's transaction
- * limits vs. Go's single db.Begin()/tx.Commit()). */
+ * atomically claims the grant (guarded UPDATE ... WHERE status = 'approved')
+ * before minting and inserting the token, so concurrent pollers cannot both
+ * win. Ports PollDeviceAuthorization from internal/store/auth.go (see the
+ * file-level note on how this path stays race-safe without D1's lacking
+ * interactive multi-statement transactions). */
 export async function pollDeviceAuthorization(
   db: D1Like,
   codeHash: string,
@@ -266,6 +275,20 @@ export async function pollDeviceAuthorization(
   if (grant.status === "consumed") return { kind: "consumed" };
 
   if (grant.status === "approved") {
+    // Claim the grant with a single guarded UPDATE before minting anything.
+    // Only the request whose UPDATE actually flips a row (changes === 1) is
+    // allowed to insert the token; a concurrent loser sees changes === 0 and
+    // returns the same "consumed" outcome as a replay against an
+    // already-redeemed grant, without ever inserting a token row. This
+    // mirrors the guarantee the Go store gets for free from wrapping the
+    // INSERT + UPDATE in a single sqlite transaction: here it's a single
+    // atomic statement instead, since D1 has no interactive multi-statement
+    // transactions.
+    const consume = await db
+      .prepare(`UPDATE device_authorizations SET status = 'consumed', consumed_at = ? WHERE id = ? AND status = 'approved'`)
+      .bind(now, grant.id)
+      .run();
+    if ((consume.meta.changes ?? 0) !== 1) return { kind: "consumed" };
     await db
       .prepare(
         `INSERT INTO api_tokens (id, token_hash, display_prefix, device_label, scopes, created_at, expires_at)
@@ -273,11 +296,6 @@ export async function pollDeviceAuthorization(
       )
       .bind(token.id, token.tokenHash, token.displayPrefix, token.deviceLabel, token.scopes, token.createdAt, token.expiresAt)
       .run();
-    const consume = await db
-      .prepare(`UPDATE device_authorizations SET status = 'consumed', consumed_at = ? WHERE id = ? AND status = 'approved'`)
-      .bind(now, grant.id)
-      .run();
-    if ((consume.meta.changes ?? 0) !== 1) return { kind: "consumed" };
     return { kind: "issued" };
   }
 
