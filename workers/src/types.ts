@@ -21,12 +21,20 @@ export interface D1ResultLike<T = unknown> {
   meta: { changes?: number; last_row_id?: number; [key: string]: unknown };
 }
 
-/** Bindings/environment shared by both workers. */
+/** Bindings/environment shared by both workers. The content worker never
+ * handles admin credentials (AGENTS.md invariant), so this interface only
+ * carries what both workers actually need. */
 export interface BaseEnv {
   DB: D1Like;
-  WAYMARK_ADMIN_PASSCODE: string;
   PUBLIC_BASE_URL: string;
   CONTROL_BASE_URL: string;
+}
+
+/** Bindings/environment for the control worker only — adds the admin
+ * passcode (required) and the auth-tuning vars that only control-side code
+ * (device-api.ts, admin.ts) reads. */
+export interface ControlEnv extends BaseEnv {
+  WAYMARK_ADMIN_PASSCODE: string;
   WAYMARK_TOKEN_TTL_DAYS?: string;
   WAYMARK_TRUST_FORWARDED_IP?: string;
 }

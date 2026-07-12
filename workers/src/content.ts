@@ -5,7 +5,7 @@
 // stay a distinct origin from the control worker (AGENTS.md invariant:
 // "Published HTML is active content").
 
-import { loadConfig, type WaymarkConfig } from "./config";
+import { loadConfig, type BaseWaymarkConfig } from "./config";
 import { errJson, logPath } from "./http";
 import { handleDiscovery } from "./device-api";
 import { getPage, nowIso } from "./store";
@@ -23,7 +23,7 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    let config: WaymarkConfig;
+    let config: BaseWaymarkConfig;
     try {
       config = loadConfig(env);
     } catch (err) {
@@ -43,7 +43,7 @@ export default {
   },
 };
 
-async function route(request: Request, env: BaseEnv, config: WaymarkConfig, pathname: string): Promise<Response> {
+async function route(request: Request, env: BaseEnv, config: BaseWaymarkConfig, pathname: string): Promise<Response> {
   const method = request.method;
 
   if (method === "GET" && pathname === "/healthz") return new Response("ok");

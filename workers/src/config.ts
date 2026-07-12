@@ -4,30 +4,60 @@
 // its config on every request and fails that request with 500 if invalid
 // (see control.ts / content.ts). Config is cheap to validate, so this has no
 // meaningful performance cost.
+//
+// The content worker never handles admin credentials (AGENTS.md invariant:
+// "published HTML must never share an origin with admin sessions or API
+// credentials"), so config loading is split in two: loadConfig() validates
+// only what both workers share (the two origins) and is safe to call with no
+// admin passcode configured at all; loadControlConfig() additionally
+// requires WAYMARK_ADMIN_PASSCODE and the other control-only vars, and is
+// the only loader control.ts should ever call.
 
-import { parseConfiguredOrigin } from "./origin";
-import type { BaseEnv } from "./types";
+import { parseConfiguredOrigin, type ParsedOrigin } from "./origin";
+import type { BaseEnv, ControlEnv } from "./types";
 
-export interface WaymarkConfig {
-  adminPasscode: string;
+export interface BaseWaymarkConfig {
   publicUrl: string;
   publicHost: string;
   controlUrl: string;
+}
+
+export interface WaymarkConfig extends BaseWaymarkConfig {
+  adminPasscode: string;
   controlHost: string;
   tokenTtlDays: number;
   secureCookie: boolean;
   trustForwardedIp: boolean;
 }
 
-export function loadConfig(env: BaseEnv): WaymarkConfig {
+function parseOrigins(env: BaseEnv): { publicOrigin: ParsedOrigin; controlOrigin: ParsedOrigin } {
   const publicOrigin = parseConfiguredOrigin(env.PUBLIC_BASE_URL ?? "");
   if (!publicOrigin) throw new Error("PUBLIC_BASE_URL is required");
   const controlOrigin = parseConfiguredOrigin(env.CONTROL_BASE_URL ?? "");
   if (!controlOrigin) throw new Error("CONTROL_BASE_URL is required");
-  if (!env.WAYMARK_ADMIN_PASSCODE) throw new Error("WAYMARK_ADMIN_PASSCODE is required");
   if (publicOrigin.url === controlOrigin.url) {
     throw new Error("PUBLIC_BASE_URL and CONTROL_BASE_URL must use different origins");
   }
+  return { publicOrigin, controlOrigin };
+}
+
+/** Base config shared by both workers. Used by content.ts, which must never
+ * require admin credentials to serve a request. */
+export function loadConfig(env: BaseEnv): BaseWaymarkConfig {
+  const { publicOrigin, controlOrigin } = parseOrigins(env);
+  return {
+    publicUrl: publicOrigin.url,
+    publicHost: publicOrigin.host,
+    controlUrl: controlOrigin.url,
+  };
+}
+
+/** Full config for the control worker only. Requires WAYMARK_ADMIN_PASSCODE
+ * (and validates the other control-only vars) in addition to everything
+ * loadConfig() validates. */
+export function loadControlConfig(env: ControlEnv): WaymarkConfig {
+  const { publicOrigin, controlOrigin } = parseOrigins(env);
+  if (!env.WAYMARK_ADMIN_PASSCODE) throw new Error("WAYMARK_ADMIN_PASSCODE is required");
 
   let tokenTtlDays = 90;
   if (env.WAYMARK_TOKEN_TTL_DAYS) {

@@ -5,7 +5,7 @@
 // stay a different origin from the content worker; published HTML is active
 // content and must never share an origin with admin sessions/credentials).
 
-import { loadConfig, type WaymarkConfig } from "./config";
+import { loadControlConfig, type WaymarkConfig } from "./config";
 import { errJson, logPath } from "./http";
 import { authenticate, hasScope } from "./auth";
 import {
@@ -31,7 +31,7 @@ import {
 } from "./admin";
 import { runCleanup } from "./cleanup";
 import { nowIso } from "./store";
-import type { BaseEnv, Credential } from "./types";
+import type { ControlEnv, Credential } from "./types";
 
 function controlRouteAllowed(pathname: string): boolean {
   return (
@@ -43,14 +43,14 @@ function controlRouteAllowed(pathname: string): boolean {
 }
 
 export default {
-  async fetch(request: Request, env: BaseEnv): Promise<Response> {
+  async fetch(request: Request, env: ControlEnv): Promise<Response> {
     const start = Date.now();
     const url = new URL(request.url);
     const pathname = url.pathname;
 
     let config: WaymarkConfig;
     try {
-      config = loadConfig(env);
+      config = loadControlConfig(env);
     } catch (err) {
       return errJson(500, `server misconfigured: ${(err as Error).message}`);
     }
@@ -75,7 +75,7 @@ export default {
     return response;
   },
 
-  async scheduled(_event: ScheduledEvent, env: BaseEnv): Promise<void> {
+  async scheduled(_event: ScheduledEvent, env: ControlEnv): Promise<void> {
     const result = await runCleanup(env.DB);
     if (result.pagesDeleted > 0) console.log(`expiry sweep: removed ${result.pagesDeleted} page(s)`);
     if (result.authRowsDeleted > 0) console.log(`auth expiry sweep: removed ${result.authRowsDeleted} record(s)`);
@@ -86,7 +86,7 @@ export default {
 };
 
 async function requireScope(
-  env: BaseEnv,
+  env: ControlEnv,
   request: Request,
   scope: "pages:read" | "pages:write",
 ): Promise<Response | Credential> {
@@ -98,7 +98,7 @@ async function requireScope(
 
 async function route(
   request: Request,
-  env: BaseEnv,
+  env: ControlEnv,
   config: WaymarkConfig,
   adminCtx: AdminCtx,
   pathname: string,

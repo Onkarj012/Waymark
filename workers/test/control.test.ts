@@ -12,10 +12,10 @@ import {
   makeEnv,
   request,
 } from "./test-env";
-import type { BaseEnv } from "../src/types";
+import type { ControlEnv } from "../src/types";
 
 let db: FakeD1;
-let env: BaseEnv;
+let env: ControlEnv;
 
 beforeEach(() => {
   db = createFakeD1();
@@ -36,6 +36,17 @@ describe("host gating", () => {
   it("rejects a route not in the control worker's allow-list even on the right host", async () => {
     const res = await controlWorker.fetch(request(CONTROL_HOST, "/theme.css"), env);
     expect(res.status).toBe(421);
+  });
+});
+
+describe("config validation", () => {
+  it("500s clearly when WAYMARK_ADMIN_PASSCODE is missing, unlike the content worker", async () => {
+    const { WAYMARK_ADMIN_PASSCODE: _omit, ...rest } = env;
+    const misconfigured = rest as ControlEnv;
+    const res = await controlWorker.fetch(request(CONTROL_HOST, "/healthz"), misconfigured);
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("WAYMARK_ADMIN_PASSCODE is required");
   });
 });
 

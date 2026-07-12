@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import contentWorker from "../src/content";
 import { createFakeD1, type FakeD1 } from "./fake-d1";
-import { CONTROL_HOST, PUBLIC_HOST, makeEnv, request } from "./test-env";
+import { CONTROL_HOST, PUBLIC_HOST, makeContentEnv, request } from "./test-env";
 import type { BaseEnv } from "../src/types";
 
 let db: FakeD1;
@@ -9,7 +9,10 @@ let env: BaseEnv;
 
 beforeEach(() => {
   db = createFakeD1();
-  env = makeEnv(db);
+  // No WAYMARK_ADMIN_PASSCODE anywhere in this env: the content worker must
+  // serve every route below without it (see workers/src/config.ts — content
+  // origins must never need admin credentials).
+  env = makeContentEnv(db);
 });
 
 describe("host gating", () => {

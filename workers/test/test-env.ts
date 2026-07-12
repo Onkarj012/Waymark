@@ -1,16 +1,27 @@
 import { createFakeD1, type FakeD1 } from "./fake-d1";
-import type { BaseEnv } from "../src/types";
+import type { BaseEnv, ControlEnv } from "../src/types";
 
 export const CONTROL_HOST = "control.localhost";
 export const PUBLIC_HOST = "pages.localhost";
 export const ADMIN_PASSCODE = "admin-secret";
 
-export function makeEnv(db: FakeD1 = createFakeD1()): BaseEnv {
+/** Env for the content worker: only what both workers share. Deliberately
+ * has no WAYMARK_ADMIN_PASSCODE — the content worker must never need one
+ * (see workers/src/config.ts). */
+export function makeContentEnv(db: FakeD1 = createFakeD1()): BaseEnv {
   return {
     DB: db,
-    WAYMARK_ADMIN_PASSCODE: ADMIN_PASSCODE,
     PUBLIC_BASE_URL: `http://${PUBLIC_HOST}`,
     CONTROL_BASE_URL: `http://${CONTROL_HOST}`,
+  };
+}
+
+/** Env for the control worker: the base env plus the admin passcode and
+ * other control-only vars. */
+export function makeEnv(db: FakeD1 = createFakeD1()): ControlEnv {
+  return {
+    ...makeContentEnv(db),
+    WAYMARK_ADMIN_PASSCODE: ADMIN_PASSCODE,
     WAYMARK_TOKEN_TTL_DAYS: "90",
   };
 }
