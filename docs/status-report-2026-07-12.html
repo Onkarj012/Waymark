@@ -1,0 +1,143 @@
+<header>
+  <h1>Waymark — Workers + D1 Port: Status Report (2026-07-12)</h1>
+  <p class="dek">The Cloudflare Workers port is complete, reviewed, hardened, merged — and as of 2026-07-12, deployed and live in production.</p>
+</header>
+
+<div class="callout ok">
+  <span class="ico" aria-hidden="true">&#10003;</span>
+  <div class="body">
+    <div class="title">Verdict</div>
+    <p>Port complete, reviewed, hardened, and merged to <code>main</code> (PR&nbsp;#1, merge commit <code>0f34076</code>). <strong>Deployed and live on 2026-07-12</strong>: control worker at <code>waymark-control.leoeccentric.workers.dev</code>, content worker at <code>waymark-content.leoeccentric.workers.dev</code>, D1 database <code>waymark</code> (id <code>10362e6d-3e3d-40aa-bf0e-074197615a07</code>, APAC) created and migrated, hourly expiry cron active, admin passcode secret set, and the first device (Onkar's Mac) approved. Config commit <code>e65a951</code> on <code>main</code>.</p>
+  </div>
+</div>
+
+<section class="stats" aria-label="Key numbers">
+  <div class="stat">
+    <div class="label">Commits merged</div>
+    <div class="value">7</div>
+    <div class="sub">~7.6k insertions</div>
+  </div>
+  <div class="stat">
+    <div class="label">Worker tests</div>
+    <div class="value">64/64</div>
+    <div class="sub">Real SQL via node:sqlite</div>
+  </div>
+  <div class="stat">
+    <div class="label">Security fixes</div>
+    <div class="value">5</div>
+    <div class="sub">Found and fixed pre-merge</div>
+  </div>
+  <div class="stat">
+    <div class="label">Production</div>
+    <div class="value">Live</div>
+    <div class="sub">Deployed 2026-07-12</div>
+  </div>
+</section>
+
+<div class="page-layout">
+  <aside class="section-nav" aria-label="On this page">
+    <p class="label">On this page</p>
+    <nav>
+      <ul>
+        <li><a href="#shipped">What shipped</a></li>
+        <li><a href="#verification">Verification</a></li>
+        <li><a href="#security">Security review</a></li>
+        <li><a href="#codex">Codex branch</a></li>
+        <li><a href="#onboarding">Onboarding a new device</a></li>
+        <li><a href="#answers">Your questions, answered</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <div class="page-content">
+
+    <section id="shipped">
+      <h2>What shipped</h2>
+      <p>Branch <code>opencode/cloudflare-workers-d1</code> delivered a TypeScript port of the Go server to two Cloudflare Workers sharing one D1 database: a <strong>control</strong> worker (API and admin) and a <strong>content</strong> worker (public pages). The two workers have separate entry points, so the origin separation is enforced structurally, with 421 Host gating in both directions.</p>
+      <ul>
+        <li><strong>Full rename</strong> from Columbia Pages to Waymark: the CLI is now <code>waymark</code>, environment variables use the <code>WAYMARK_*</code> prefix, and config lives at <code>~/.config/waymark</code>.</li>
+        <li><strong>Hourly cron</strong> replaces the Go expiry-sweep goroutine.</li>
+        <li><strong>Rate limiting</strong> is now persisted in D1.</li>
+        <li><strong>Theme stays single-source</strong>: deploy scripts re-embed <code>theme/theme.css</code>, so the house theme continues to live in one file.</li>
+        <li><strong>Docs</strong>: <code>docs/self-hosting/cloudflare-workers.md</code> plus a new <code>docs/self-hosting/ENV.md</code> with the complete env and secret reference.</li>
+      </ul>
+    </section>
+
+    <section id="verification">
+      <h2>Verification</h2>
+      <ul>
+        <li><code>go test</code> passes across all four packages; <code>go vet</code> is clean.</li>
+        <li>The workers' vitest suite passes 64/64, running real SQL against the actual migration via <code>node:sqlite</code>.</li>
+        <li><code>tsc</code> typecheck is clean for both the source and test configs.</li>
+        <li>An earlier live end-to-end run with <code>wrangler dev</code> and the real CLI exercised device login, themed and raw publishing, CRUD, TTL expiry, 421 Host gating, and 401 paths — full parity with the Go server.</li>
+      </ul>
+    </section>
+
+    <section id="security">
+      <h2>Security review</h2>
+      <p>A high-scrutiny review covered the full diff. The following were verified clean: origin separation; unguessable page IDs (rejection-sampled base62, about 71 bits of entropy, crypto RNG, uniformity-tested); fully parameterized SQL; token and secret hashing with constant-time comparisons; <code>__Host-</code> cookies with CSRF and Origin checks; the admin passcode absent from the content worker bundle; and byte-for-byte themed/raw output parity with the Go server.</p>
+      <p>Five issues were found and <strong>fixed before merge</strong> (commit <code>195b92d</code>):</p>
+      <div class="table-wrap" role="region" aria-label="Security issues fixed before merge" tabindex="0">
+        <table>
+          <caption>Issues found and fixed in commit 195b92d</caption>
+          <thead>
+            <tr><th scope="col">Issue</th><th scope="col">Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Silent JSON type coercion in the pages API</th>
+              <td><code>ttl_days: "7"</code> made a page never expire and <code>raw: "false"</code> flipped themed to raw. Wrong-typed fields now return strict 400s, matching the Go behavior.</td>
+            </tr>
+            <tr>
+              <th scope="row">Missing response headers on control-worker JSON</th>
+              <td>Responses (including the token-bearing device poll) lacked <code>Cache-Control: no-store</code> and security headers. Every response is now stamped.</td>
+            </tr>
+            <tr>
+              <th scope="row">Uncaught errors on malformed percent-encoding</th>
+              <td>Bad encoding in paths or cookies threw uncaught and returned 500. Now handled as 404 or logged-out.</td>
+            </tr>
+            <tr>
+              <th scope="row">Non-atomic device-grant claim</th>
+              <td>Grant claim and token insert now run as one D1 batch transaction, so a failed insert cannot burn a grant.</td>
+            </tr>
+            <tr>
+              <th scope="row">No body-size caps on unauthenticated endpoints</th>
+              <td>Request bodies on unauthenticated endpoints are now capped.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="codex">
+      <h2>Codex branch</h2>
+      <p>The parallel <code>codex/cloudflare-workers-d1</code> branch was assessed and is <strong>strictly superseded</strong>: it is a single 755-line worker whose origin split is only runtime-gated (the admin code ships inside the content bundle), it has no cron sweep, and its tests are thin.</p>
+      <p>One idea is worth an optional future cherry-pick: a schema-level trigger enforcing one token per grant. That would be defense-in-depth only — the current fix is already race-safe and tested.</p>
+      <div class="callout note">
+        <span class="ico" aria-hidden="true">&#8505;</span>
+        <div class="body">
+          <div class="title">Recommendation</div>
+          <p>Delete the <code>codex/cloudflare-workers-d1</code> branch.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="onboarding">
+      <h2>Onboarding a new device or agent</h2>
+      <p>Production is live, so onboarding is now the only recurring step. On the new machine or agent, run <code>waymark login --server https://waymark-control.leoeccentric.workers.dev</code>, then approve the device once in the browser. The issued device token lasts 90 days.</p>
+      <p>Custom domains can be attached to both workers later without any data loss.</p>
+    </section>
+
+    <section id="answers">
+      <h2>Your questions, answered</h2>
+      <dl class="facts">
+        <dt>Any uncommitted work?</dt>
+        <dd>No. The tree is clean and everything is merged and pushed.</dd>
+        <dt>Daily logins?</dt>
+        <dd>No. <code>wrangler login</code> happens once ever; the admin passcode is only needed when approving a new device; device tokens last 90 days.</dd>
+        <dt>Will links work everywhere?</dt>
+        <dd>Yes. Published links are plain public HTTPS served from the Cloudflare edge — they work from any network, device, or cloud agent, and your Mac can be asleep, unlike the current Tailscale-Funnel setup.</dd>
+      </dl>
+    </section>
+
+  </div>
+</div>
