@@ -1,6 +1,6 @@
 # Device Authorization
 
-Columbia Pages implements owner-approved device authorization for the `cpages`
+Waymark implements owner-approved device authorization for the `waymark`
 CLI. An agent receives a scoped, revocable token without learning the deployment
 admin passcode.
 
@@ -23,10 +23,10 @@ works on every host for platform health checks.
 ## CLI Flow
 
 ```bash
-cpages login --server https://pages.example.com
+waymark login --server https://pages.example.com
 ```
 
-1. The CLI reads `/.well-known/columbia-pages` from either configured origin.
+1. The CLI reads `/.well-known/waymark` from either configured origin.
 2. It generates a 256-bit device secret and requests a ten-minute grant.
 3. It prints the activation URL and an eight-character user code.
 4. The owner opens the control URL, signs in, reviews the device label and
@@ -44,8 +44,8 @@ token.
 ## Tokens And Sessions
 
 Device tokens default to 90 days. Configure a value from 1 through 365 with
-`COLUMBIA_PAGES_TOKEN_TTL_DAYS`. `cpages status` reports the credential kind,
-label, scopes, and expiry. `cpages logout` attempts server-side revocation and
+`WAYMARK_TOKEN_TTL_DAYS`. `waymark status` reports the credential kind,
+label, scopes, and expiry. `waymark logout` attempts server-side revocation and
 always removes the local config, even when the service is unreachable.
 
 The admin UI lists active and revoked tokens at `/admin/tokens`. Owner sessions

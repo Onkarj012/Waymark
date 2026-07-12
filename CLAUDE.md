@@ -7,19 +7,19 @@ living only in `theme/theme.css`, the public-but-unguessable page IDs, auth mode
 
 Quick orientation:
 
-- **Columbia Pages** publishes clean HTML pages and returns shareable links. Go
-  server + SQLite (HTML inline) + a `cpages` CLI + a house theme + an agent skill.
-- To use the tool to *publish* a page, see `.skills/columbia-pages/SKILL.md`.
+- **Waymark** publishes clean HTML pages and returns shareable links. Go
+  server + SQLite (HTML inline) + a `waymark` CLI + a house theme + an agent skill.
+- To use the tool to *publish* a page, see `.skills/waymark/SKILL.md`.
 
 Most-used commands:
 
 ```bash
 go test ./... && go vet ./...                  # test + vet
 go build -o bin/server ./cmd/server             # build server
-go build -o bin/cpages ./cmd/cpages             # build CLI
+go build -o bin/waymark ./cmd/waymark             # build CLI
 PUBLIC_BASE_URL=http://pages.localhost:8080 \
 CONTROL_BASE_URL=http://control.localhost:8080 \
-COLUMBIA_PAGES_ADMIN_PASSCODE=dev-admin-secret ./bin/server
+WAYMARK_ADMIN_PASSCODE=dev-admin-secret ./bin/server
 ```
 
 Before changing the look, edit `theme/theme.css` (the single source of truth) and

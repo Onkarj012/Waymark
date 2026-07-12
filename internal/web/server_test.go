@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davis7dotsh/columbia-pages/internal/store"
+	"github.com/Onkarj012/Waymark/internal/store"
 )
 
 func TestCreateAndServeThemedPage(t *testing.T) {
@@ -52,8 +52,8 @@ func TestCreateAndServeThemedPage(t *testing.T) {
 	if !bytes.Contains(page, []byte("<script>window.demo=true</script>")) {
 		t.Fatalf("publisher HTML contract changed: %s", page)
 	}
-	credit := `<footer class="columbia-pages-credit">
-<a href="https://github.com/davis7dotsh/columbia-pages" target="_blank" rel="noopener noreferrer">generated on Columbia Pages</a>
+	credit := `<footer class="waymark-credit">
+<a href="https://github.com/Onkarj012/Waymark" target="_blank" rel="noopener noreferrer">generated on Waymark</a>
 </footer>`
 	if !bytes.Contains(page, []byte(credit)) {
 		t.Fatalf("generated credit is missing or unsafe: %s", page)
@@ -132,9 +132,9 @@ func seedDeviceToken(t *testing.T, st *store.Store) string {
 	if err := st.DecideDeviceAuthorization(grant.UserCodeHash, "approved", now); err != nil {
 		t.Fatal(err)
 	}
-	raw := "cpages_test.secret"
+	raw := "waymark_test.secret"
 	token := store.APIToken{
-		ID: "token", TokenHash: hashHighEntropy(raw), DisplayPrefix: "cpages_test", DeviceLabel: grant.DeviceLabel,
+		ID: "token", TokenHash: hashHighEntropy(raw), DisplayPrefix: "waymark_test", DeviceLabel: grant.DeviceLabel,
 		Scopes: grant.Scopes, CreatedAt: now, ExpiresAt: now.Add(time.Hour),
 	}
 	if _, err := st.PollDeviceAuthorization(grant.DeviceCodeHash, grant.DeviceSecretHash, now, token); err != nil {

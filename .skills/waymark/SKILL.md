@@ -1,9 +1,9 @@
 ---
-name: columbia-pages
-description: Publish polished, shareable HTML reports with the cpages CLI. Use when analysis, comparisons, tables, status reports, or other structured information would be clearer as a hosted page than as inline chat.
+name: waymark
+description: Publish polished, shareable HTML reports with the waymark CLI. Use when analysis, comparisons, tables, status reports, or other structured information would be clearer as a hosted page than as inline chat.
 ---
 
-# Columbia Pages
+# Waymark
 
 Publish useful HTML and return the shareable URL. Let the content determine the
 composition; the house theme supplies a restrained visual system without
@@ -11,9 +11,9 @@ requiring every page to look the same.
 
 ## Preflight
 
-Run `cpages status` before writing the page. Continue only when it exits
+Run `waymark status` before writing the page. Continue only when it exits
 successfully and the `Auth` line says `authenticated`. If it is not configured,
-ask the user to run `cpages login --server <url>`. The command prints a browser
+ask the user to run `waymark login --server <url>`. The command prints a browser
 activation URL and waits for the deployment owner to approve a scoped device
 token. Never ask the user to paste the admin passcode into an agent prompt.
 
@@ -26,7 +26,7 @@ it that way.
 Prefer stdin for a page created once:
 
 ```bash
-cpages create --title "Quarterly review" - <<'HTML'
+waymark create --title "Quarterly review" - <<'HTML'
 <header>
   <h1>Quarterly review</h1>
   <p class="dek">Performance, open decisions, and the next set of actions.</p>
@@ -45,7 +45,7 @@ publishing:
 ```bash
 f="$(mktemp)"
 # Write body HTML to "$f".
-cpages create --title "Quarterly review" "$f"
+waymark create --title "Quarterly review" "$f"
 rm -f "$f"
 ```
 
@@ -95,11 +95,11 @@ external text escaped or safely rendered.
 ## Manage Pages
 
 ```bash
-cpages list
-cpages get <id>
-cpages update <id> "$f"
-cpages update --ttl 0 <id>
-cpages delete <id>
+waymark list
+waymark get <id>
+waymark update <id> "$f"
+waymark update --ttl 0 <id>
+waymark delete <id>
 ```
 
 Use `--json` on read commands when structured output is helpful. After creating

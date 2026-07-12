@@ -1,20 +1,20 @@
-// Command cpages is the Columbia Pages client. It uploads an HTML file to the
+// Command waymark is the Waymark client. It uploads an HTML file to the
 // server and prints back a shareable link, and manages existing pages.
 //
 // Configuration (environment variables, overridable with flags):
 //
-//	COLUMBIA_PAGES_URL    server base URL, e.g. https://pages.example.com
-//	COLUMBIA_PAGES_TOKEN  device token override
+//	WAYMARK_URL    server base URL, e.g. https://pages.example.com
+//	WAYMARK_TOKEN  device token override
 //
 // Usage:
 //
-//	cpages login   [--server URL]
-//	cpages create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
-//	cpages list    [--limit N] [--json]
-//	cpages get     [--json] <id>
-//	cpages update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
-//	cpages delete  <id>
-//	cpages version
+//	waymark login   [--server URL]
+//	waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
+//	waymark list    [--limit N] [--json]
+//	waymark get     [--json] <id>
+//	waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
+//	waymark delete  <id>
+//	waymark version
 package main
 
 import (
@@ -60,7 +60,7 @@ func main() {
 	case "delete", "rm":
 		err = cmdDelete(os.Args[2:])
 	case "version", "-v", "--version":
-		fmt.Println("cpages " + version)
+		fmt.Println("waymark " + version)
 		return
 	case "help", "-h", "--help":
 		usage()
@@ -81,7 +81,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `cpages — publish HTML pages to Columbia Pages
+	fmt.Fprint(os.Stderr, `waymark — publish HTML pages to Waymark
 
 Setup:
   login   [--server URL] [--device-name NAME] [--read-only]
@@ -328,12 +328,12 @@ func cmdStatus(args []string) error {
 
 	fmt.Printf("Config file: %s\n", configPath())
 	if srv == "" {
-		fmt.Println("Server:      (not set) — run `cpages login`")
+		fmt.Println("Server:      (not set) — run `waymark login`")
 	} else {
 		fmt.Printf("Server:      %s (from %s)\n", srv, srvSrc)
 	}
 	if token == "" {
-		fmt.Println("Credential:  (not set) — run `cpages login`")
+		fmt.Println("Credential:  (not set) — run `waymark login`")
 	} else {
 		fmt.Printf("Credential:  device token (from %s)\n", tokenSrc)
 	}
@@ -403,14 +403,14 @@ func newClient(serverFlag *string) (*client, error) {
 		return nil, err
 	}
 	if server == "" {
-		return nil, errors.New("no server configured — run `cpages login`")
+		return nil, errors.New("no server configured — run `waymark login`")
 	}
 	server, err = normalizeServerURL(server)
 	if err != nil {
 		return nil, err
 	}
 	if token == "" {
-		return nil, errors.New("not logged in — run `cpages login`")
+		return nil, errors.New("not logged in — run `waymark login`")
 	}
 	return &client{base: server, token: token}, nil
 }

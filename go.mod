@@ -1,4 +1,4 @@
-module github.com/davis7dotsh/columbia-pages
+module github.com/Onkarj012/Waymark
 
 go 1.25.0
 

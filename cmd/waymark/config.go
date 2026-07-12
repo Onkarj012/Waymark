@@ -18,20 +18,20 @@ type config struct {
 
 // configDir resolves the directory holding config.json:
 //
-//	$COLUMBIA_PAGES_CONFIG_DIR, else $XDG_CONFIG_HOME/columbia-pages,
-//	else ~/.config/columbia-pages
+//	$WAYMARK_CONFIG_DIR, else $XDG_CONFIG_HOME/waymark,
+//	else ~/.config/waymark
 func configDir() string {
-	if d := os.Getenv("COLUMBIA_PAGES_CONFIG_DIR"); d != "" {
+	if d := os.Getenv("WAYMARK_CONFIG_DIR"); d != "" {
 		return d
 	}
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, "columbia-pages")
+		return filepath.Join(xdg, "waymark")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "."
 	}
-	return filepath.Join(home, ".config", "columbia-pages")
+	return filepath.Join(home, ".config", "waymark")
 }
 
 func configPath() string { return filepath.Join(configDir(), "config.json") }
@@ -96,15 +96,15 @@ func resolve(serverFlag string) (server, token, serverSrc, tokenSrc string, err 
 	switch {
 	case strings.TrimSpace(serverFlag) != "":
 		server, serverSrc = serverFlag, "flag"
-	case os.Getenv("COLUMBIA_PAGES_URL") != "":
-		server, serverSrc = os.Getenv("COLUMBIA_PAGES_URL"), "env"
+	case os.Getenv("WAYMARK_URL") != "":
+		server, serverSrc = os.Getenv("WAYMARK_URL"), "env"
 	case cfg.URL != "":
 		server, serverSrc = cfg.URL, "config"
 	}
 
 	switch {
-	case os.Getenv("COLUMBIA_PAGES_TOKEN") != "":
-		token, tokenSrc = os.Getenv("COLUMBIA_PAGES_TOKEN"), "env"
+	case os.Getenv("WAYMARK_TOKEN") != "":
+		token, tokenSrc = os.Getenv("WAYMARK_TOKEN"), "env"
 	case cfg.Token != "":
 		token, tokenSrc = cfg.Token, "config"
 	}

@@ -15,7 +15,7 @@ Until the first tagged release, only the latest commit on `main` is supported.
 
 ## Content Trust Model
 
-Columbia Pages stores and serves publisher-supplied HTML. It does not sanitize
+Waymark stores and serves publisher-supplied HTML. It does not sanitize
 themed body content, and raw pages may contain JavaScript. Treat publishing
 credentials as trusted-code-authority for the page origin.
 
@@ -38,10 +38,13 @@ host with HTTP 421. See [`docs/device-authorization.md`](docs/device-authorizati
 ## Deployment
 
 - Mount persistent storage at `/data`.
-- Use a unique, high-entropy `COLUMBIA_PAGES_ADMIN_PASSCODE`.
+- Use a unique, high-entropy `WAYMARK_ADMIN_PASSCODE`.
 - Set distinct HTTPS `PUBLIC_BASE_URL` and `CONTROL_BASE_URL` origins.
 - Back up the complete SQLite volume consistently, including WAL state.
 - Do not bake `.env`, databases, credentials, or local build output into images.
-- Railway edge client IP metadata is trusted only when Railway's injected
-  environment ID is present. Other deployments ignore forwarded IP headers and
-  key abuse limits from the network peer.
+- The Go server trusts forwarded client IP metadata only when its Railway
+  environment ID is present; otherwise it keys abuse limits from the raw
+  network peer. The Cloudflare Workers port (`workers/`) uses Cloudflare's
+  edge-verified `CF-Connecting-IP` by default, and only honors an additional
+  `X-Real-IP` override when `WAYMARK_TRUST_FORWARDED_IP` is explicitly set
+  (for a proxy in front of Cloudflare).

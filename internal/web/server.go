@@ -1,4 +1,4 @@
-// Package web implements the Columbia Pages HTTP server: a scoped JSON API for
+// Package web implements the Waymark HTTP server: a scoped JSON API for
 // managing pages, and public, unguessable view URLs.
 package web
 
@@ -16,13 +16,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davis7dotsh/columbia-pages/internal/store"
-	"github.com/davis7dotsh/columbia-pages/theme"
+	"github.com/Onkarj012/Waymark/internal/store"
+	"github.com/Onkarj012/Waymark/theme"
 )
 
 const maxBodyBytes = 8 << 20 // 8 MiB cap on uploaded HTML
 
-// Server is the HTTP handler for Columbia Pages.
+// Server is the HTTP handler for Waymark.
 type Server struct {
 	store            *store.Store
 	adminPasscode    string
@@ -58,7 +58,7 @@ func NewConfigured(st *store.Store, cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("CONTROL_BASE_URL: %w", err)
 	}
 	if cfg.AdminPasscode == "" {
-		return nil, errors.New("COLUMBIA_PAGES_ADMIN_PASSCODE is required")
+		return nil, errors.New("WAYMARK_ADMIN_PASSCODE is required")
 	}
 	if publicURL == "" {
 		return nil, errors.New("PUBLIC_BASE_URL is required")
@@ -73,7 +73,7 @@ func NewConfigured(st *store.Store, cfg Config) (*Server, error) {
 		cfg.TokenTTLDays = 90
 	}
 	if cfg.TokenTTLDays < 1 || cfg.TokenTTLDays > 365 {
-		return nil, errors.New("COLUMBIA_PAGES_TOKEN_TTL_DAYS must be between 1 and 365")
+		return nil, errors.New("WAYMARK_TOKEN_TTL_DAYS must be between 1 and 365")
 	}
 	s := &Server{
 		store: st, adminPasscode: cfg.AdminPasscode,
@@ -88,7 +88,7 @@ func NewConfigured(st *store.Store, cfg Config) (*Server, error) {
 	mux.HandleFunc("GET /theme.css", s.handleThemeCSS)
 	mux.HandleFunc("GET /p/{id}", s.handleServePage)
 	mux.HandleFunc("GET /{$}", s.handleIndex)
-	mux.HandleFunc("GET /.well-known/columbia-pages", s.handleDiscovery)
+	mux.HandleFunc("GET /.well-known/waymark", s.handleDiscovery)
 
 	// Authenticated JSON API.
 	mux.HandleFunc("GET /api/auth", s.auth("pages:read", s.handleAuthCheck))
@@ -136,7 +136,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(w, "Columbia Pages\n")
+	io.WriteString(w, "Waymark\n")
 }
 
 // handleAuthCheck returns token metadata after auth() verifies the request.
@@ -196,8 +196,8 @@ func renderThemed(title, content string) string {
 	b.WriteString(themeToggleButton)
 	b.WriteString("<main class=\"page\">\n")
 	b.WriteString(content)
-	b.WriteString("\n<footer class=\"columbia-pages-credit\">\n")
-	b.WriteString("<a href=\"https://github.com/davis7dotsh/columbia-pages\" target=\"_blank\" rel=\"noopener noreferrer\">generated on Columbia Pages</a>\n")
+	b.WriteString("\n<footer class=\"waymark-credit\">\n")
+	b.WriteString("<a href=\"https://github.com/Onkarj012/Waymark\" target=\"_blank\" rel=\"noopener noreferrer\">generated on Waymark</a>\n")
 	b.WriteString("</footer>\n</main>\n")
 	b.WriteString(themeToggleScript)
 	b.WriteString("</body>\n</html>\n")
@@ -208,7 +208,7 @@ func renderThemed(title, content string) string {
 // <head> before paint to avoid a flash: it follows the visitor's stored choice,
 // or the system preference on first load. The button (top-right) flips and
 // persists the choice; styling lives in theme.css (.theme-toggle).
-const themeInitScript = `<script>(function(){try{var t=localStorage.getItem("cpages-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
+const themeInitScript = `<script>(function(){try{var t=localStorage.getItem("waymark-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
 `
 
 const themeToggleButton = `<button class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
@@ -216,7 +216,7 @@ const themeToggleButton = `<button class="theme-toggle" type="button" aria-label
 </button>
 `
 
-const themeToggleScript = `<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle"),mq=matchMedia("(prefers-color-scheme: dark)");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("cpages-theme",t);}catch(e){}});try{if(!localStorage.getItem("cpages-theme"))mq.addEventListener("change",function(e){apply(e.matches?"dark":"light");});}catch(e){}})();</script>
+const themeToggleScript = `<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle"),mq=matchMedia("(prefers-color-scheme: dark)");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});try{if(!localStorage.getItem("waymark-theme"))mq.addEventListener("change",function(e){apply(e.matches?"dark":"light");});}catch(e){}})();</script>
 `
 
 // --- API: requests & responses ---------------------------------------------
@@ -419,10 +419,10 @@ func (s *Server) routeAllowed(r *http.Request) bool {
 	}
 	host := strings.ToLower(r.Host)
 	if host == strings.ToLower(s.publicHost) {
-		return r.URL.Path == "/" || r.URL.Path == "/theme.css" || r.URL.Path == "/.well-known/columbia-pages" || strings.HasPrefix(r.URL.Path, "/p/")
+		return r.URL.Path == "/" || r.URL.Path == "/theme.css" || r.URL.Path == "/.well-known/waymark" || strings.HasPrefix(r.URL.Path, "/p/")
 	}
 	if host == strings.ToLower(s.controlHost) {
-		return r.URL.Path == "/.well-known/columbia-pages" || strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/activate" || strings.HasPrefix(r.URL.Path, "/admin/")
+		return r.URL.Path == "/.well-known/waymark" || strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/activate" || strings.HasPrefix(r.URL.Path, "/admin/")
 	}
 	return false
 }

@@ -21,9 +21,9 @@ func TestSaveConfigSecuresExistingPaths(t *testing.T) {
 	if err := os.WriteFile(path, []byte("{}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("COLUMBIA_PAGES_CONFIG_DIR", dir)
+	t.Setenv("WAYMARK_CONFIG_DIR", dir)
 
-	want := config{URL: "https://control.example.com", Token: "cpages_test.secret"}
+	want := config{URL: "https://control.example.com", Token: "waymark_test.secret"}
 	if err := saveConfig(want); err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestNormalizeServerURL(t *testing.T) {
 
 func TestResolveReturnsConfigParseError(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("COLUMBIA_PAGES_CONFIG_DIR", dir)
+	t.Setenv("WAYMARK_CONFIG_DIR", dir)
 	if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte("not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}

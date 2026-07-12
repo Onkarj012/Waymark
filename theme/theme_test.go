@@ -42,8 +42,8 @@ func TestSectionNavigationResponsiveContract(t *testing.T) {
 
 func TestGeneratedCreditStyleContract(t *testing.T) {
 	for _, rule := range []string{
-		".columbia-pages-credit { justify-content: center; text-align: center; }",
-		".columbia-pages-credit a {",
+		".waymark-credit { justify-content: center; text-align: center; }",
+		".waymark-credit a {",
 		"text-decoration-color: transparent;",
 	} {
 		if !strings.Contains(CSS, rule) {

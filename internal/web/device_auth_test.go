@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davis7dotsh/columbia-pages/internal/store"
+	"github.com/Onkarj012/Waymark/internal/store"
 )
 
 func TestConfiguredOriginValidationAndHostGating(t *testing.T) {
@@ -61,7 +61,7 @@ func TestConfiguredOriginValidationAndHostGating(t *testing.T) {
 		}
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "http://pages.localhost/.well-known/columbia-pages", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://pages.localhost/.well-known/waymark", nil)
 	req.Host = "pages.localhost"
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -134,7 +134,7 @@ func TestDeviceApprovalScopeAndRevocation(t *testing.T) {
 	tokensPage := doRequest(t, h, http.MethodGet, "control.localhost", "/admin/tokens", nil, cookie, "")
 	tokensBody, _ := io.ReadAll(tokensPage.Body)
 	tokensPage.Body.Close()
-	if tokensPage.StatusCode != http.StatusOK || bytes.Contains(tokensBody, []byte(issued.AccessToken)) || !bytes.Contains(tokensBody, []byte("cpages_")) {
+	if tokensPage.StatusCode != http.StatusOK || bytes.Contains(tokensBody, []byte(issued.AccessToken)) || !bytes.Contains(tokensBody, []byte("waymark_")) {
 		t.Fatalf("token page status/body = %d, %s", tokensPage.StatusCode, tokensBody)
 	}
 
@@ -257,7 +257,7 @@ func TestAdminFormsRequireOriginAndCSRF(t *testing.T) {
 		t.Fatalf("bad-csrf logout status = %d, want 403", resp.StatusCode)
 	}
 	resp.Body.Close()
-	forged := &http.Cookie{Name: "cpages_admin", Value: "missing-session"}
+	forged := &http.Cookie{Name: "waymark_admin", Value: "missing-session"}
 	request := httptest.NewRequest(http.MethodPost, "http://control.localhost/admin/logout", strings.NewReader(form.Encode()))
 	request.Host = "control.localhost"
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -364,7 +364,7 @@ func TestProductionAdminCookieIsHostOnlySecureAndStrict(t *testing.T) {
 		t.Fatalf("cookies = %d, want 1", len(cookies))
 	}
 	cookie := cookies[0]
-	if cookie.Name != "__Host-cpages_admin" || !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteStrictMode || cookie.Domain != "" || cookie.Path != "/" {
+	if cookie.Name != "__Host-waymark_admin" || !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteStrictMode || cookie.Domain != "" || cookie.Path != "/" {
 		t.Fatalf("unsafe production cookie: %#v", cookie)
 	}
 }

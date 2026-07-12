@@ -1,0 +1,40 @@
+# Control worker — authenticated JSON API, device authorization, and the
+# admin UI (sign-in, /activate, token management). Must be deployed on a
+# distinct origin/domain from wrangler.content.toml's worker: published HTML
+# is active content and must never share an origin with admin sessions or
+# credentials (see AGENTS.md "Conventions & invariants").
+#
+# Setup: docs/self-hosting/cloudflare-workers.md
+
+name = "waymark-control"
+main = "src/control.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# Hourly expiry sweep — the Workers equivalent of cmd/server/main.go's
+# sweepExpired(ctx, st, time.Hour) goroutine. Deletes expired pages, expired
+# device grants/tokens/admin sessions, and stale rate-limit buckets.
+[triggers]
+crons = ["0 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "waymark"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+# Non-secret configuration. Set the admin passcode as a secret instead:
+#   wrangler secret put WAYMARK_ADMIN_PASSCODE -c wrangler.control.toml
+PUBLIC_BASE_URL = "https://pages.example.com"
+CONTROL_BASE_URL = "https://control.example.com"
+WAYMARK_TOKEN_TTL_DAYS = "90"
+WAYMARK_TRUST_FORWARDED_IP = "false"
+
+# Attach the control domain once it's added to your Cloudflare zone, e.g.:
+# [[routes]]
+# pattern = "control.example.com/*"
+# custom_domain = true

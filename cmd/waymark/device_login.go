@@ -49,7 +49,7 @@ func loginWithDevice(serverValue, deviceName string, readOnly bool) error {
 	if err != nil {
 		return err
 	}
-	server := firstNonEmpty(serverValue, os.Getenv("COLUMBIA_PAGES_URL"))
+	server := firstNonEmpty(serverValue, os.Getenv("WAYMARK_URL"))
 	if server == "" {
 		hint := ""
 		if existing.URL != "" {
@@ -68,10 +68,10 @@ func loginWithDevice(serverValue, deviceName string, readOnly bool) error {
 
 	discovery, err := discover(server)
 	if err != nil {
-		return fmt.Errorf("device discovery failed: %w; upgrade the Columbia Pages deployment, then retry", err)
+		return fmt.Errorf("device discovery failed: %w; upgrade the Waymark deployment, then retry", err)
 	}
 	if !discovery.DeviceAuthorization || discovery.ControlURL == "" {
-		return errors.New("this instance does not support device login; upgrade the Columbia Pages deployment, then retry")
+		return errors.New("this instance does not support device login; upgrade the Waymark deployment, then retry")
 	}
 	controlURL, err := normalizeServerURL(discovery.ControlURL)
 	if err != nil {
@@ -82,7 +82,7 @@ func loginWithDevice(serverValue, deviceName string, readOnly bool) error {
 		if hostErr != nil || strings.TrimSpace(host) == "" {
 			host = "this device"
 		}
-		deviceName = "cpages on " + host
+		deviceName = "waymark on " + host
 	}
 	if len(deviceName) > 120 {
 		return errors.New("--device-name must be 120 characters or fewer")
@@ -113,7 +113,7 @@ func loginWithDevice(serverValue, deviceName string, readOnly bool) error {
 }
 
 func discover(server string) (discoveryResponse, error) {
-	resp, err := (&http.Client{Timeout: 15 * time.Second}).Get(server + "/.well-known/columbia-pages")
+	resp, err := (&http.Client{Timeout: 15 * time.Second}).Get(server + "/.well-known/waymark")
 	if err != nil {
 		return discoveryResponse{}, err
 	}

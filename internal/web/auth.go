@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davis7dotsh/columbia-pages/internal/store"
+	"github.com/Onkarj012/Waymark/internal/store"
 )
 
 const (
@@ -285,7 +285,7 @@ func newAPIToken() (string, string, string, error) {
 	if err != nil {
 		return "", "", "", err
 	}
-	prefix := "cpages_" + id
+	prefix := "waymark_" + id
 	return prefix + "." + secret, id, prefix, nil
 }
 
