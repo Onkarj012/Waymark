@@ -7,7 +7,16 @@ export function getCookie(request: Request, name: string): string | null {
     const eq = part.indexOf("=");
     if (eq === -1) continue;
     const key = part.slice(0, eq).trim();
-    if (key === name) return decodeURIComponent(part.slice(eq + 1).trim());
+    if (key === name) {
+      // A cookie value with malformed percent-encoding (e.g. a bare "%") is
+      // treated as absent rather than letting decodeURIComponent's URIError
+      // escape and 500 every route that reads cookies.
+      try {
+        return decodeURIComponent(part.slice(eq + 1).trim());
+      } catch {
+        return null;
+      }
+    }
   }
   return null;
 }

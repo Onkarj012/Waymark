@@ -12,6 +12,20 @@ export function errJson(status: number, message: string, headers?: HeadersInit):
   return json(status, { error: message }, headers);
 }
 
+/** decodeURIComponent that never throws: malformed percent-encoding (e.g. a
+ * bare "%") falls back to the raw value instead of raising a URIError that
+ * would bubble up as a Workers 1101/500. Page/token IDs are base62/base64url,
+ * so a legitimate request never round-trips through the fallback, and a
+ * malformed one simply fails its lookup (→ 404), matching how the Go server
+ * never serves such a request successfully. */
+export function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export type Handler = (request: Request, params: Record<string, string>) => Promise<Response> | Response;
 
 interface Route {
@@ -49,7 +63,7 @@ export class Router {
       if (!match) continue;
       const params: Record<string, string> = {};
       route.keys.forEach((key, i) => {
-        params[key] = decodeURIComponent(match[i + 1]!);
+        params[key] = safeDecodeURIComponent(match[i + 1]!);
       });
       return route.handler(request, params);
     }

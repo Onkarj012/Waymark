@@ -3,7 +3,7 @@
 // their request/response shapes (createReq/updateReq/pageResp) and
 // ttlToExpiry(). This is the surface the `waymark` CLI drives directly.
 
-import { BodyTooLargeError, decodeStrict, isSet, readBodyText } from "./body";
+import { BodyTooLargeError, checkFieldTypes, decodeStrict, isSet, readBodyText, type FieldType } from "./body";
 import { errJson, json } from "./http";
 import { newId } from "./id";
 import { NotFoundError, type D1Like, type Page, type PageMeta } from "./types";
@@ -60,7 +60,18 @@ export function ttlToExpiry(now: string, days: number | undefined): string | nul
   return new Date(new Date(now).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-async function readCreateReq(request: Request) {
+/** Field types shared by createReq and updateReq in server.go: encoding/json
+ * rejects a wrong-typed field with an error (→ 400), so type mismatches must
+ * never be silently coerced. */
+const PAGE_FIELD_TYPES: Readonly<Record<string, FieldType>> = {
+  title: "string",
+  slug: "string",
+  html: "string",
+  raw: "boolean",
+  ttl_days: "integer",
+};
+
+async function readPageReq(request: Request) {
   let text: string;
   try {
     text = await readBodyText(request);
@@ -70,26 +81,29 @@ async function readCreateReq(request: Request) {
   }
   const decoded = decodeStrict<Record<string, unknown>>(text, ["title", "slug", "html", "raw", "ttl_days"]);
   if (!decoded.ok) return { ok: false as const, status: 400, message: decoded.message };
+  const typeError = checkFieldTypes(decoded.value, PAGE_FIELD_TYPES);
+  if (typeError) return { ok: false as const, status: 400, message: typeError };
   return { ok: true as const, value: decoded.value };
 }
 
 export async function handleCreate(db: D1Like, publicUrl: string, request: Request): Promise<Response> {
-  const decoded = await readCreateReq(request);
+  const decoded = await readPageReq(request);
   if (!decoded.ok) return errJson(decoded.status, decoded.message);
   const data = decoded.value;
 
-  const title = String(data.title ?? "").trim();
+  // readPageReq guarantees types; a JSON null falls back to the Go zero value.
+  const title = (typeof data.title === "string" ? data.title : "").trim();
   if (!title) return errJson(400, "title is required");
-  const html = String(data.html ?? "");
+  const html = typeof data.html === "string" ? data.html : "";
   if (!html.trim()) return errJson(400, "html is required");
 
   const now = nowIso();
   const page: Page = {
     id: "",
     title,
-    slug: String(data.slug ?? "").trim(),
+    slug: (typeof data.slug === "string" ? data.slug : "").trim(),
     html,
-    raw: Boolean(data.raw),
+    raw: data.raw === true,
     createdAt: now,
     updatedAt: now,
     expiresAt: ttlToExpiry(now, typeof data.ttl_days === "number" ? data.ttl_days : undefined),
@@ -143,15 +157,8 @@ export async function handleUpdate(
   id: string,
   request: Request,
 ): Promise<Response> {
-  let text: string;
-  try {
-    text = await readBodyText(request);
-  } catch (err) {
-    if (err instanceof BodyTooLargeError) return errJson(413, "request body too large");
-    throw err;
-  }
-  const decoded = decodeStrict<Record<string, unknown>>(text, ["title", "slug", "html", "raw", "ttl_days"]);
-  if (!decoded.ok) return errJson(400, decoded.message);
+  const decoded = await readPageReq(request);
+  if (!decoded.ok) return errJson(decoded.status, decoded.message);
   const data = decoded.value;
 
   let page: Page;
@@ -162,24 +169,28 @@ export async function handleUpdate(
     return errJson(500, "could not load page");
   }
 
+  // readPageReq guarantees every set field carries the right type, mirroring
+  // Go's updateReq pointer fields: present means typed value, null/absent
+  // means "leave unchanged".
   if (isSet(data, "title")) {
-    const t = String(data.title).trim();
+    const t = (data.title as string).trim();
     if (!t) return errJson(400, "title cannot be empty");
     page.title = t;
   }
   if (isSet(data, "slug")) {
-    page.slug = String(data.slug).trim();
+    page.slug = (data.slug as string).trim();
   }
   if (isSet(data, "html")) {
-    if (!String(data.html).trim()) return errJson(400, "html cannot be empty");
-    page.html = String(data.html);
+    const h = data.html as string;
+    if (!h.trim()) return errJson(400, "html cannot be empty");
+    page.html = h;
   }
   if (isSet(data, "raw")) {
-    page.raw = Boolean(data.raw);
+    page.raw = data.raw as boolean;
   }
   const now = nowIso();
   if (isSet(data, "ttl_days")) {
-    page.expiresAt = ttlToExpiry(now, Number(data.ttl_days));
+    page.expiresAt = ttlToExpiry(now, data.ttl_days as number);
   }
   page.updatedAt = now;
 

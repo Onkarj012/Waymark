@@ -3,7 +3,7 @@
 // handleAuthCheck. The admin-facing side of the same flow (activate/decide)
 // lives in admin.ts, matching the Go split between auth.go and admin.go.
 
-import { decodeStrict } from "./body";
+import { BodyTooLargeError, decodeStrict, readBodyText } from "./body";
 import {
   base64UrlByteLength,
   hashHighEntropy,
@@ -55,7 +55,16 @@ export async function handleDeviceCode(
     return errJson(429, "rate_limited");
   }
 
-  const text = await request.text();
+  // These endpoints are unauthenticated, so the body read itself must be
+  // capped (readBodyText enforces the same 8 MiB limit Go's MaxBytesReader
+  // applies in Server.decode()).
+  let text: string;
+  try {
+    text = await readBodyText(request);
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return errJson(413, "request body too large");
+    throw err;
+  }
   const decoded = decodeStrict<{ device_secret?: unknown; device_label?: unknown; scopes?: unknown }>(text, [
     "device_secret",
     "device_label",
@@ -132,7 +141,14 @@ export async function handleDeviceToken(
     return errJson(429, "rate_limited");
   }
 
-  const text = await request.text();
+  // Unauthenticated endpoint: cap the body read itself (8 MiB, same as Go).
+  let text: string;
+  try {
+    text = await readBodyText(request);
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return errJson(413, "request body too large");
+    throw err;
+  }
   const decoded = decodeStrict<{ device_code?: unknown; device_secret?: unknown }>(text, [
     "device_code",
     "device_secret",

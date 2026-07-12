@@ -283,6 +283,93 @@ describe("admin token management", () => {
   });
 });
 
+describe("control security headers", () => {
+  // The exact set setControlHeaders() applies in internal/web/admin.go; Go's
+  // ServeHTTP stamps it on every control-host response, so the worker must too.
+  const EXPECTED_HEADERS: Record<string, string> = {
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "same-origin",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy":
+      "default-src 'none'; style-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+  };
+
+  function expectSecurityHeaders(res: Response): void {
+    for (const [name, value] of Object.entries(EXPECTED_HEADERS)) {
+      expect(res.headers.get(name), name).toBe(value);
+    }
+  }
+
+  it("stamps the device-token poll success response that carries the access token", async () => {
+    const secret = "D".repeat(43);
+    const codeRes = await controlWorker.fetch(
+      jsonRequest(CONTROL_HOST, "POST", "/api/auth/device/code", {
+        device_secret: secret,
+        device_label: "headers device",
+        scopes: ["pages:read"],
+      }),
+      env,
+    );
+    expect(codeRes.status).toBe(201);
+    expectSecurityHeaders(codeRes);
+    const code = (await codeRes.json()) as { device_code: string; user_code: string };
+
+    const { cookie, csrf } = await adminLogin();
+    await controlWorker.fetch(
+      formRequest(
+        CONTROL_HOST,
+        "/activate",
+        { csrf, code: code.user_code, decision: "approved" },
+        { origin: `http://${CONTROL_HOST}`, cookie },
+      ),
+      env,
+    );
+
+    const tokenRes = await controlWorker.fetch(
+      jsonRequest(CONTROL_HOST, "POST", "/api/auth/device/token", {
+        device_code: code.device_code,
+        device_secret: secret,
+      }),
+      env,
+    );
+    expect(tokenRes.status).toBe(200);
+    expect(((await tokenRes.json()) as { access_token: string }).access_token).toBeTruthy();
+    expectSecurityHeaders(tokenRes);
+  });
+
+  it("stamps every other control response: discovery, 401 JSON errors, 404s, and 421s", async () => {
+    expectSecurityHeaders(await controlWorker.fetch(request(CONTROL_HOST, "/.well-known/waymark"), env));
+
+    const unauthorized = await controlWorker.fetch(request(CONTROL_HOST, "/api/auth"), env);
+    expect(unauthorized.status).toBe(401);
+    expectSecurityHeaders(unauthorized);
+
+    const notFound = await controlWorker.fetch(request(CONTROL_HOST, "/api/no-such-route"), env);
+    expect(notFound.status).toBe(404);
+    expectSecurityHeaders(notFound);
+
+    const misdirected = await controlWorker.fetch(request(PUBLIC_HOST, "/admin/login"), env);
+    expect(misdirected.status).toBe(421);
+    expectSecurityHeaders(misdirected);
+  });
+});
+
+describe("malformed cookies", () => {
+  it("treats an admin cookie with malformed percent-encoding as logged out instead of 500ing", async () => {
+    const res = await controlWorker.fetch(
+      request(CONTROL_HOST, "/admin/tokens", { cookie: "waymark_admin=%" }),
+      env,
+    );
+    expect(res.status).toBe(303);
+    expect(res.headers.get("Location")).toContain("/admin/login");
+  });
+
+  it("does not 500 the pages API when the request path has malformed percent-encoding", async () => {
+    const res = await controlWorker.fetch(request(CONTROL_HOST, "/api/pages/%", { method: "DELETE" }), env);
+    expect(res.status).toBe(401); // unauthenticated, but routed — not an uncaught URIError
+  });
+});
+
 describe("CSRF / origin enforcement on admin forms", () => {
   it("rejects logout with the wrong origin or a bad csrf token", async () => {
     const { cookie, csrf } = await adminLogin();

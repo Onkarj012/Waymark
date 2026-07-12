@@ -67,3 +67,32 @@ export function decodeStrict<T extends Record<string, unknown>>(
 export function isSet(data: Record<string, unknown>, key: string): boolean {
   return key in data && data[key] !== null;
 }
+
+export type FieldType = "string" | "boolean" | "integer";
+
+/** Checks that every present, non-null field matches its declared JSON type —
+ * the equivalent of encoding/json returning an *UnmarshalTypeError* (which
+ * Server.decode() turns into a 400) when a request field carries the wrong
+ * type. JSON `null` passes: Go leaves a non-pointer field at its zero value
+ * and a pointer field nil, both without error. Returns the 400 error message
+ * for the first mismatch, or null when everything checks out. */
+export function checkFieldTypes(
+  data: Record<string, unknown>,
+  types: Readonly<Record<string, FieldType>>,
+): string | null {
+  for (const [key, expected] of Object.entries(types)) {
+    if (!isSet(data, key)) continue;
+    const value = data[key];
+    const ok =
+      expected === "string"
+        ? typeof value === "string"
+        : expected === "boolean"
+          ? typeof value === "boolean"
+          : typeof value === "number" && Number.isInteger(value);
+    if (!ok) {
+      const article = expected === "integer" ? "an integer" : `a ${expected}`;
+      return `invalid JSON: field "${key}" must be ${article}`;
+    }
+  }
+  return null;
+}

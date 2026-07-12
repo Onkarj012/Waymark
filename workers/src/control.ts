@@ -6,7 +6,7 @@
 // content and must never share an origin with admin sessions/credentials).
 
 import { loadControlConfig, type WaymarkConfig } from "./config";
-import { errJson, logPath } from "./http";
+import { errJson, logPath, safeDecodeURIComponent } from "./http";
 import { authenticate, hasScope } from "./auth";
 import {
   handleAuthCheck,
@@ -42,34 +42,26 @@ function controlRouteAllowed(pathname: string): boolean {
   );
 }
 
+/** Stamps the control-origin security headers onto a response. Go's
+ * ServeHTTP() applies setControlHeaders() to *every* control-host response
+ * (server.go), not just the admin HTML — including all /api/* JSON such as
+ * the device-token poll response that carries an access_token. Mirror that
+ * by wrapping every response this worker returns. */
+function applyControlHeaders(response: Response): Response {
+  const wrapped = new Response(response.body, response);
+  for (const [key, value] of Object.entries(controlSecurityHeaders())) {
+    wrapped.headers.set(key, value);
+  }
+  return wrapped;
+}
+
 export default {
   async fetch(request: Request, env: ControlEnv): Promise<Response> {
     const start = Date.now();
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    let config: WaymarkConfig;
-    try {
-      config = loadControlConfig(env);
-    } catch (err) {
-      return errJson(500, `server misconfigured: ${(err as Error).message}`);
-    }
-
-    const host = request.headers.get("Host") ?? "";
-    const hostMatches = host.toLowerCase() === config.controlHost.toLowerCase();
-    if (pathname !== "/healthz" && (!hostMatches || !controlRouteAllowed(pathname))) {
-      return new Response("misdirected request", { status: 421 });
-    }
-
-    const adminCtx: AdminCtx = {
-      db: env.DB,
-      adminPasscode: config.adminPasscode,
-      controlUrl: config.controlUrl,
-      secureCookie: config.secureCookie,
-      trustForwardedIp: config.trustForwardedIp,
-    };
-
-    const response = await route(request, env, config, adminCtx, pathname);
+    const response = applyControlHeaders(await dispatch(request, env, pathname));
     const durationMs = Date.now() - start;
     console.log(`${request.method} ${logPath(pathname)} -> ${response.status} (${durationMs}ms)`);
     return response;
@@ -84,6 +76,31 @@ export default {
     }
   },
 };
+
+async function dispatch(request: Request, env: ControlEnv, pathname: string): Promise<Response> {
+  let config: WaymarkConfig;
+  try {
+    config = loadControlConfig(env);
+  } catch (err) {
+    return errJson(500, `server misconfigured: ${(err as Error).message}`);
+  }
+
+  const host = request.headers.get("Host") ?? "";
+  const hostMatches = host.toLowerCase() === config.controlHost.toLowerCase();
+  if (pathname !== "/healthz" && (!hostMatches || !controlRouteAllowed(pathname))) {
+    return new Response("misdirected request", { status: 421 });
+  }
+
+  const adminCtx: AdminCtx = {
+    db: env.DB,
+    adminPasscode: config.adminPasscode,
+    controlUrl: config.controlUrl,
+    secureCookie: config.secureCookie,
+    trustForwardedIp: config.trustForwardedIp,
+  };
+
+  return route(request, env, config, adminCtx, pathname);
+}
 
 async function requireScope(
   env: ControlEnv,
@@ -130,17 +147,17 @@ async function route(
   if (pageIdMatch && method === "GET") {
     const credential = await requireScope(env, request, "pages:read");
     if (credential instanceof Response) return credential;
-    return handleGetMeta(env.DB, config.publicUrl, decodeURIComponent(pageIdMatch[1]!));
+    return handleGetMeta(env.DB, config.publicUrl, safeDecodeURIComponent(pageIdMatch[1]!));
   }
   if (pageIdMatch && method === "PUT") {
     const credential = await requireScope(env, request, "pages:write");
     if (credential instanceof Response) return credential;
-    return handleUpdate(env.DB, config.publicUrl, decodeURIComponent(pageIdMatch[1]!), request);
+    return handleUpdate(env.DB, config.publicUrl, safeDecodeURIComponent(pageIdMatch[1]!), request);
   }
   if (pageIdMatch && method === "DELETE") {
     const credential = await requireScope(env, request, "pages:write");
     if (credential instanceof Response) return credential;
-    return handleDelete(env.DB, decodeURIComponent(pageIdMatch[1]!));
+    return handleDelete(env.DB, safeDecodeURIComponent(pageIdMatch[1]!));
   }
 
   if (pathname === "/api/auth/device/code" && method === "POST") {
@@ -176,7 +193,7 @@ async function route(
   }
   const tokenRevokeMatch = pathname.match(/^\/admin\/tokens\/([^/]+)\/revoke$/);
   if (tokenRevokeMatch && method === "POST") {
-    const tokenId = decodeURIComponent(tokenRevokeMatch[1]!);
+    const tokenId = safeDecodeURIComponent(tokenRevokeMatch[1]!);
     return requireAdmin(adminCtx, request, () => handleAdminTokenRevoke(adminCtx, request, tokenId));
   }
   if (pathname === "/admin/style.css" && method === "GET") {

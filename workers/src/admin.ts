@@ -12,6 +12,7 @@ import {
   normalizeUserCode,
   randomBase64Url,
 } from "./crypto";
+import { BodyTooLargeError, readBodyText } from "./body";
 import { escapeHtml } from "./render";
 import { getCookie, serializeCookie } from "./cookies";
 import { formatAdminDate, formatAdminDateTime } from "./dates";
@@ -149,11 +150,20 @@ async function validatedAdminSession(
 
 const MAX_FORM_BYTES = 64 << 10;
 
+/** Reads and parses an admin form body, enforcing the 64 KiB cap *while*
+ * streaming (never buffering an unbounded body first). Oversize or unparsable
+ * bodies return null, which every caller turns into the same 400 "invalid
+ * form" that Go's parseAdminForm (MaxBytesReader + ParseForm) produces. */
 export async function parseAdminForm(request: Request): Promise<URLSearchParams | null> {
-  const buf = await request.arrayBuffer();
-  if (buf.byteLength > MAX_FORM_BYTES) return null;
+  let text: string;
   try {
-    return new URLSearchParams(new TextDecoder().decode(buf));
+    text = await readBodyText(request, MAX_FORM_BYTES);
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return null;
+    throw err;
+  }
+  try {
+    return new URLSearchParams(text);
   } catch {
     return null;
   }

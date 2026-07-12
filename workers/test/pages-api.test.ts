@@ -47,6 +47,33 @@ describe("handleCreate", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects wrong-typed fields with 400 instead of coercing them (mirrors encoding/json type errors)", async () => {
+    const wrongTyped: unknown[] = [
+      { title: "x", html: "y", ttl_days: "7" }, // string ttl_days must not be silently dropped
+      { title: "x", html: "y", raw: "false" }, // Boolean("false") === true must never happen
+      { title: 123, html: "y" }, // numeric title must not become "123"
+      { title: "x", html: ["y"] },
+      { title: "x", html: "y", slug: 1 },
+    ];
+    for (const body of wrongTyped) {
+      const res = await handleCreate(db, publicUrl, req(body));
+      expect(res.status).toBe(400);
+      const err = (await res.json()) as { error: string };
+      expect(err.error).toContain("invalid JSON");
+    }
+    // Nothing above may have created a page.
+    const list = await handleList(db, publicUrl, new Request("http://control.localhost/api/pages"));
+    expect(((await list.json()) as { pages: unknown[] }).pages).toHaveLength(0);
+  });
+
+  it("still treats JSON null fields as absent, like Go's zero values", async () => {
+    const res = await handleCreate(db, publicUrl, req({ title: "x", html: "y", ttl_days: null, raw: null, slug: null }));
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { raw: boolean; expires_at?: string };
+    expect(body.raw).toBe(false);
+    expect(body.expires_at).toBeUndefined();
+  });
+
   it("sets an absolute expiry from ttl_days", async () => {
     const res = await handleCreate(db, publicUrl, req({ title: "x", html: "y", ttl_days: 7 }));
     const body = (await res.json()) as { expires_at?: string; created_at: string };
@@ -89,6 +116,30 @@ describe("handleList / handleGetMeta / handleUpdate / handleDelete", () => {
     const body = (await res.json()) as { title: string; raw: boolean };
     expect(body.title).toBe("Original");
     expect(body.raw).toBe(true);
+  });
+
+  it("rejects wrong-typed fields on update with 400 and leaves the page untouched", async () => {
+    const created = await createOne("Original");
+    const wrongTyped: unknown[] = [{ ttl_days: "7" }, { raw: "false" }, { title: 123 }];
+    for (const body of wrongTyped) {
+      const putReq = new Request(`http://control.localhost/api/pages/${created.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const res = await handleUpdate(db, publicUrl, created.id, putReq);
+      expect(res.status).toBe(400);
+      const err = (await res.json()) as { error: string };
+      expect(err.error).toContain("invalid JSON");
+    }
+    const meta = (await (await handleGetMeta(db, publicUrl, created.id)).json()) as {
+      title: string;
+      raw: boolean;
+      expires_at?: string;
+    };
+    expect(meta.title).toBe("Original");
+    expect(meta.raw).toBe(false);
+    expect(meta.expires_at).toBeUndefined(); // ttl_days: "7" must not clear/set expiry via NaN
   });
 
   it("rejects clearing the title or html to empty", async () => {

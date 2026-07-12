@@ -16,11 +16,14 @@
 //
 // pollDeviceAuthorization's approved -> consumed transition is the one path
 // where a race would mint duplicate valid tokens, so it does not rely on that
-// accepted gap: the grant is claimed via a single guarded UPDATE ... WHERE
-// status = 'approved' before the token INSERT runs, so only the caller whose
-// UPDATE actually changes a row ever mints a token. That single statement is
-// atomic on D1/SQLite the same way Go's transaction is, so this path is
-// race-safe without needing a multi-statement transaction.
+// accepted gap: the guarded claim (UPDATE ... WHERE status = 'approved') and
+// the token INSERT run together in one db.batch(), which D1 executes
+// sequentially inside a single implicit transaction — so an INSERT failure
+// rolls the claim back instead of burning the grant, and the INSERT itself is
+// gated on the claim having flipped a row (WHERE changes() = 1), so only the
+// caller whose UPDATE actually wins ever mints a token. That matches the
+// atomicity Go's store gets from wrapping the same two statements in an
+// explicit sqlite transaction.
 
 import type {
   APIToken,
@@ -252,11 +255,11 @@ export async function decideDeviceAuthorization(
 }
 
 /** Advances the persisted polling state. When the grant is approved, it
- * atomically claims the grant (guarded UPDATE ... WHERE status = 'approved')
- * before minting and inserting the token, so concurrent pollers cannot both
- * win. Ports PollDeviceAuthorization from internal/store/auth.go (see the
- * file-level note on how this path stays race-safe without D1's lacking
- * interactive multi-statement transactions). */
+ * claims the grant (guarded UPDATE ... WHERE status = 'approved') and inserts
+ * the token in one batch transaction, so concurrent pollers cannot both win
+ * and a failed insert cannot burn the grant. Ports PollDeviceAuthorization
+ * from internal/store/auth.go (see the file-level note on how this path stays
+ * race-safe without D1's lacking interactive multi-statement transactions). */
 export async function pollDeviceAuthorization(
   db: D1Like,
   codeHash: string,
@@ -275,27 +278,30 @@ export async function pollDeviceAuthorization(
   if (grant.status === "consumed") return { kind: "consumed" };
 
   if (grant.status === "approved") {
-    // Claim the grant with a single guarded UPDATE before minting anything.
-    // Only the request whose UPDATE actually flips a row (changes === 1) is
-    // allowed to insert the token; a concurrent loser sees changes === 0 and
+    // Claim the grant and mint the token in one db.batch() — D1 runs the
+    // statements sequentially inside a single implicit transaction, so a
+    // failed INSERT rolls the claim back rather than consuming the grant
+    // without ever issuing a token. The claim is a guarded UPDATE ... WHERE
+    // status = 'approved': only the request whose UPDATE actually flips a row
+    // (changes === 1) may mint; a concurrent loser sees changes === 0 and
     // returns the same "consumed" outcome as a replay against an
-    // already-redeemed grant, without ever inserting a token row. This
-    // mirrors the guarantee the Go store gets for free from wrapping the
-    // INSERT + UPDATE in a single sqlite transaction: here it's a single
-    // atomic statement instead, since D1 has no interactive multi-statement
-    // transactions.
-    const consume = await db
-      .prepare(`UPDATE device_authorizations SET status = 'consumed', consumed_at = ? WHERE id = ? AND status = 'approved'`)
-      .bind(now, grant.id)
-      .run();
-    if ((consume.meta.changes ?? 0) !== 1) return { kind: "consumed" };
-    await db
-      .prepare(
-        `INSERT INTO api_tokens (id, token_hash, display_prefix, device_label, scopes, created_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(token.id, token.tokenHash, token.displayPrefix, token.deviceLabel, token.scopes, token.createdAt, token.expiresAt)
-      .run();
+    // already-redeemed grant. The INSERT is additionally gated on the claim
+    // (WHERE changes() = 1 — SQLite's changes() reports the immediately
+    // preceding statement on this connection), so the loser's batch inserts
+    // no token row either. Together this mirrors the guarantee the Go store
+    // gets from wrapping the same statements in a single sqlite transaction.
+    const [consume] = await db.batch([
+      db
+        .prepare(`UPDATE device_authorizations SET status = 'consumed', consumed_at = ? WHERE id = ? AND status = 'approved'`)
+        .bind(now, grant.id),
+      db
+        .prepare(
+          `INSERT INTO api_tokens (id, token_hash, display_prefix, device_label, scopes, created_at, expires_at)
+           SELECT ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1`,
+        )
+        .bind(token.id, token.tokenHash, token.displayPrefix, token.deviceLabel, token.scopes, token.createdAt, token.expiresAt),
+    ]);
+    if ((consume?.meta.changes ?? 0) !== 1) return { kind: "consumed" };
     return { kind: "issued" };
   }
 

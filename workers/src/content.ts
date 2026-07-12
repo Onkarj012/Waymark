@@ -6,7 +6,7 @@
 // "Published HTML is active content").
 
 import { loadConfig, type BaseWaymarkConfig } from "./config";
-import { errJson, logPath } from "./http";
+import { errJson, logPath, safeDecodeURIComponent } from "./http";
 import { handleDiscovery } from "./device-api";
 import { getPage, nowIso } from "./store";
 import { renderThemed } from "./render";
@@ -63,7 +63,9 @@ async function route(request: Request, env: BaseEnv, config: BaseWaymarkConfig, 
   }
 
   if (method === "GET" && pathname.startsWith("/p/")) {
-    const id = decodeURIComponent(pathname.slice("/p/".length));
+    // safeDecodeURIComponent: malformed percent-encoding (GET /p/%) must fall
+    // through to the page lookup and 404, never throw an uncaught URIError.
+    const id = safeDecodeURIComponent(pathname.slice("/p/".length));
     return servePage(env, id);
   }
 

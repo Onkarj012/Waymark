@@ -98,6 +98,11 @@ describe("GET /p/{id}", () => {
     expect(res.status).toBe(404);
   });
 
+  it("404s for malformed percent-encoding in the path instead of throwing", async () => {
+    const res = await contentWorker.fetch(request(PUBLIC_HOST, "/p/%"), env);
+    expect(res.status).toBe(404);
+  });
+
   it("404s for an expired page instead of serving it", async () => {
     const page = await seedPage({ expiresAt: "2020-01-01T00:00:00.000Z" });
     const res = await contentWorker.fetch(request(PUBLIC_HOST, `/p/${page.id}`), env);
