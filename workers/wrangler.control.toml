@@ -23,14 +23,14 @@ crons = ["0 * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "waymark"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "10362e6d-3e3d-40aa-bf0e-074197615a07"
 migrations_dir = "migrations"
 
 [vars]
 # Non-secret configuration. Set the admin passcode as a secret instead:
 #   wrangler secret put WAYMARK_ADMIN_PASSCODE -c wrangler.control.toml
-PUBLIC_BASE_URL = "https://pages.example.com"
-CONTROL_BASE_URL = "https://control.example.com"
+PUBLIC_BASE_URL = "https://waymark-content.leoeccentric.workers.dev"
+CONTROL_BASE_URL = "https://waymark-control.leoeccentric.workers.dev"
 WAYMARK_TOKEN_TTL_DAYS = "90"
 WAYMARK_TRUST_FORWARDED_IP = "false"
 
