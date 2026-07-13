@@ -20,6 +20,7 @@ export interface BaseWaymarkConfig {
   publicUrl: string;
   publicHost: string;
   controlUrl: string;
+  legacyHosts: string[];
 }
 
 export interface WaymarkConfig extends BaseWaymarkConfig {
@@ -41,6 +42,27 @@ function parseOrigins(env: BaseEnv): { publicOrigin: ParsedOrigin; controlOrigin
   return { publicOrigin, controlOrigin };
 }
 
+/** Parses WAYMARK_LEGACY_HOSTS: comma-separated bare hostnames that should
+ * 308-redirect to the worker's canonical origin. Rejects entries that are
+ * URLs rather than hosts, and entries that collide with either canonical
+ * host (a self-redirect loop would take the worker down). */
+function parseLegacyHosts(value: string | undefined, canonicalHosts: string[]): string[] {
+  const canonical = canonicalHosts.map((h) => h.toLowerCase());
+  const hosts: string[] = [];
+  for (const entry of (value ?? "").split(",")) {
+    const host = entry.trim().toLowerCase();
+    if (host === "") continue;
+    if (host.includes("/") || host.includes(" ")) {
+      throw new Error("WAYMARK_LEGACY_HOSTS entries must be bare hostnames, not URLs");
+    }
+    if (canonical.includes(host)) {
+      throw new Error("WAYMARK_LEGACY_HOSTS must not include a canonical host");
+    }
+    hosts.push(host);
+  }
+  return hosts;
+}
+
 /** Base config shared by both workers. Used by content.ts, which must never
  * require admin credentials to serve a request. */
 export function loadConfig(env: BaseEnv): BaseWaymarkConfig {
@@ -49,6 +71,7 @@ export function loadConfig(env: BaseEnv): BaseWaymarkConfig {
     publicUrl: publicOrigin.url,
     publicHost: publicOrigin.host,
     controlUrl: controlOrigin.url,
+    legacyHosts: parseLegacyHosts(env.WAYMARK_LEGACY_HOSTS, [publicOrigin.host, controlOrigin.host]),
   };
 }
 
@@ -75,6 +98,7 @@ export function loadControlConfig(env: ControlEnv): WaymarkConfig {
     publicHost: publicOrigin.host,
     controlUrl: controlOrigin.url,
     controlHost: controlOrigin.host,
+    legacyHosts: parseLegacyHosts(env.WAYMARK_LEGACY_HOSTS, [publicOrigin.host, controlOrigin.host]),
     tokenTtlDays,
     secureCookie: controlOrigin.secure,
     trustForwardedIp: env.WAYMARK_TRUST_FORWARDED_IP === "true",

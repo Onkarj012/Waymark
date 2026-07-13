@@ -11,6 +11,10 @@ main = "src/control.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Keep the *.workers.dev host enabled: it serves the legacy 308 redirect for
+# clients configured before the custom domain existed (see WAYMARK_LEGACY_HOSTS).
+workers_dev = true
+
 [observability]
 enabled = true
 
@@ -29,12 +33,12 @@ migrations_dir = "migrations"
 [vars]
 # Non-secret configuration. Set the admin passcode as a secret instead:
 #   wrangler secret put WAYMARK_ADMIN_PASSCODE -c wrangler.control.toml
-PUBLIC_BASE_URL = "https://waymark-content.leoeccentric.workers.dev"
-CONTROL_BASE_URL = "https://waymark-control.leoeccentric.workers.dev"
+PUBLIC_BASE_URL = "https://waymark.leo4.dev"
+CONTROL_BASE_URL = "https://waymark-api.leo4.dev"
+WAYMARK_LEGACY_HOSTS = "waymark-control.leoeccentric.workers.dev"
 WAYMARK_TOKEN_TTL_DAYS = "90"
 WAYMARK_TRUST_FORWARDED_IP = "false"
 
-# Attach the control domain once it's added to your Cloudflare zone, e.g.:
-# [[routes]]
-# pattern = "control.example.com/*"
-# custom_domain = true
+[[routes]]
+pattern = "waymark-api.leo4.dev"
+custom_domain = true

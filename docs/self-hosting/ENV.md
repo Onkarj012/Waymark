@@ -36,6 +36,7 @@ Config file: `workers/wrangler.control.toml`.
 | `CONTROL_BASE_URL` | **Required** | none | `[vars]` in `wrangler.control.toml` | Must match the content worker's `CONTROL_BASE_URL` and differ from `PUBLIC_BASE_URL`. |
 | `WAYMARK_TOKEN_TTL_DAYS` | Optional | `90` | `[vars]` in `wrangler.control.toml` | String in the TOML (e.g. `"90"`); parsed to an integer and validated to `1..365`. |
 | `WAYMARK_TRUST_FORWARDED_IP` | Optional | `"false"` | `[vars]` in `wrangler.control.toml` | Only the literal string `"true"` enables it. Set `"true"` only if you run something in front of Cloudflare that overwrites the true client IP; that upstream must set `X-Real-IP` to the genuine client address. Unlike the Go server's `RAILWAY_ENVIRONMENT_ID` auto-detection, this is an explicit opt-in var on Workers. |
+| `WAYMARK_LEGACY_HOSTS` | Optional | none | `[vars]` in `wrangler.control.toml` | Comma-separated bare hostnames this worker used to live on (e.g. its `*.workers.dev` host after moving to a custom domain). Requests on a legacy host get a 308 redirect to `CONTROL_BASE_URL` with the path and query preserved. Entries must not be URLs and must not equal either canonical host. Workers-only — the Go server has no equivalent. |
 | `DB` (D1 binding) | **Required** | none | `[[d1_databases]]` block, `database_id` field | Both workers must bind the **same** D1 database. See "Create the D1 database" below. |
 
 ## Cloudflare Workers — content worker
@@ -53,6 +54,7 @@ origins and the D1 binding — it does **not** read
 |---|---|---|---|---|
 | `PUBLIC_BASE_URL` | **Required** | none | `[vars]` in `wrangler.content.toml` | Must match the control worker's value. |
 | `CONTROL_BASE_URL` | **Required** | none | `[vars]` in `wrangler.content.toml` | Must match the control worker's value. |
+| `WAYMARK_LEGACY_HOSTS` | Optional | none | `[vars]` in `wrangler.content.toml` | Same semantics as the control worker's entry, but redirects to `PUBLIC_BASE_URL`. Keeps previously shared page links working after a domain move. |
 | `DB` (D1 binding) | **Required** | none | `[[d1_databases]]` block, `database_id` field | Same database as the control worker. |
 
 ## `waymark` CLI (`cmd/waymark`)

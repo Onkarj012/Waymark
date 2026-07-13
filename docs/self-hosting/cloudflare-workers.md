@@ -101,6 +101,19 @@ what's required — you don't strictly need a custom zone to satisfy the
 origin-separation invariant, only to get stable hostnames for
 `PUBLIC_BASE_URL`/`CONTROL_BASE_URL`.
 
+That said, prefer a custom domain for anything you'll share: many automated
+fetchers (link previewers, AI-agent egress proxies) distrust or block the
+`*.workers.dev` suffix outright because free subdomains are heavily abused.
+
+### Moving from workers.dev to a custom domain later
+
+Point `PUBLIC_BASE_URL`/`CONTROL_BASE_URL` at the new domains, keep
+`workers_dev = true`, and list each worker's old `*.workers.dev` hostname in
+its `WAYMARK_LEGACY_HOSTS` var (see `docs/self-hosting/ENV.md`). Requests on
+the old host then 308-redirect to the new origin with the path preserved, so
+links shared before the move keep resolving. No data migration is involved —
+pages live in D1, keyed by ID, not by hostname.
+
 ## 7. Deploy both Workers
 
 ```bash

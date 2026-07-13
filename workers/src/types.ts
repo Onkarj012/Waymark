@@ -28,6 +28,11 @@ export interface BaseEnv {
   DB: D1Like;
   PUBLIC_BASE_URL: string;
   CONTROL_BASE_URL: string;
+  /** Comma-separated hostnames this worker previously lived on (e.g. its
+   * *.workers.dev host after moving to a custom domain). Requests arriving on
+   * a legacy host are 308-redirected to the canonical origin so old shared
+   * links keep working. */
+  WAYMARK_LEGACY_HOSTS?: string;
 }
 
 /** Bindings/environment for the control worker only — adds the admin

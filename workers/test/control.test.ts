@@ -37,6 +37,14 @@ describe("host gating", () => {
     const res = await controlWorker.fetch(request(CONTROL_HOST, "/theme.css"), env);
     expect(res.status).toBe(421);
   });
+
+  it("308-redirects a legacy host to the canonical control origin, with security headers", async () => {
+    const legacyEnv = { ...env, WAYMARK_LEGACY_HOSTS: "old-control.localhost" };
+    const res = await controlWorker.fetch(request("old-control.localhost", "/activate?code=abc"), legacyEnv);
+    expect(res.status).toBe(308);
+    expect(res.headers.get("Location")).toBe(`http://${CONTROL_HOST}/activate?code=abc`);
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
 });
 
 describe("config validation", () => {

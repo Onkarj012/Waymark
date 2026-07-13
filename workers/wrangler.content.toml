@@ -11,6 +11,10 @@ main = "src/content.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Keep the *.workers.dev host enabled: it serves the legacy 308 redirect for
+# links shared before the custom domain existed (see WAYMARK_LEGACY_HOSTS).
+workers_dev = true
+
 [observability]
 enabled = true
 
@@ -21,10 +25,10 @@ database_id = "10362e6d-3e3d-40aa-bf0e-074197615a07"
 migrations_dir = "migrations"
 
 [vars]
-PUBLIC_BASE_URL = "https://waymark-content.leoeccentric.workers.dev"
-CONTROL_BASE_URL = "https://waymark-control.leoeccentric.workers.dev"
+PUBLIC_BASE_URL = "https://waymark.leo4.dev"
+CONTROL_BASE_URL = "https://waymark-api.leo4.dev"
+WAYMARK_LEGACY_HOSTS = "waymark-content.leoeccentric.workers.dev"
 
-# Attach the content domain once it's added to your Cloudflare zone, e.g.:
-# [[routes]]
-# pattern = "pages.example.com/*"
-# custom_domain = true
+[[routes]]
+pattern = "waymark.leo4.dev"
+custom_domain = true

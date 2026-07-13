@@ -31,6 +31,9 @@ export default {
     }
 
     const host = request.headers.get("Host") ?? "";
+    if (config.legacyHosts.includes(host.toLowerCase())) {
+      return Response.redirect(`${config.publicUrl}${pathname}${url.search}`, 308);
+    }
     const hostMatches = host.toLowerCase() === config.publicHost.toLowerCase();
     if (pathname !== "/healthz" && (!hostMatches || !publicRouteAllowed(pathname))) {
       return new Response("misdirected request", { status: 421 });

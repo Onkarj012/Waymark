@@ -86,6 +86,10 @@ async function dispatch(request: Request, env: ControlEnv, pathname: string): Pr
   }
 
   const host = request.headers.get("Host") ?? "";
+  if (config.legacyHosts.includes(host.toLowerCase())) {
+    const url = new URL(request.url);
+    return Response.redirect(`${config.controlUrl}${url.pathname}${url.search}`, 308);
+  }
   const hostMatches = host.toLowerCase() === config.controlHost.toLowerCase();
   if (pathname !== "/healthz" && (!hostMatches || !controlRouteAllowed(pathname))) {
     return new Response("misdirected request", { status: 421 });

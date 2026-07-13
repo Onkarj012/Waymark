@@ -32,6 +32,27 @@ describe("host gating", () => {
   });
 });
 
+describe("legacy host redirect", () => {
+  it("308-redirects a legacy host to the same path and query on the canonical origin", async () => {
+    const legacyEnv = { ...env, WAYMARK_LEGACY_HOSTS: "old-pages.localhost" };
+    const res = await contentWorker.fetch(request("old-pages.localhost", "/p/abc123?x=1"), legacyEnv);
+    expect(res.status).toBe(308);
+    expect(res.headers.get("Location")).toBe(`http://${PUBLIC_HOST}/p/abc123?x=1`);
+  });
+
+  it("still 421s unknown hosts that are not in the legacy list", async () => {
+    const legacyEnv = { ...env, WAYMARK_LEGACY_HOSTS: "old-pages.localhost" };
+    const res = await contentWorker.fetch(request("evil.localhost", "/p/abc123"), legacyEnv);
+    expect(res.status).toBe(421);
+  });
+
+  it("fails closed with 500 when a legacy host collides with a canonical host", async () => {
+    const legacyEnv = { ...env, WAYMARK_LEGACY_HOSTS: PUBLIC_HOST };
+    const res = await contentWorker.fetch(request(PUBLIC_HOST, "/theme.css"), legacyEnv);
+    expect(res.status).toBe(500);
+  });
+});
+
 describe("GET /theme.css", () => {
   it("serves the embedded house theme verbatim, byte-for-byte the same as theme/theme.css", async () => {
     const res = await contentWorker.fetch(request(PUBLIC_HOST, "/theme.css"), env);
