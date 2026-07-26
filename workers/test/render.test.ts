@@ -29,4 +29,17 @@ describe("renderThemed", () => {
     const html = renderThemed("Title", "<p>Body</p>");
     expect(html.indexOf("waymark-theme")).toBeLessThan(html.indexOf("<body>"));
   });
+
+  it("injects the reading-progress bar and the section-nav script", () => {
+    const html = renderThemed("Title", "<p>Body</p>");
+    expect(html).toContain('<div class="reading-progress" aria-hidden="true"></div>');
+    // the hooks the theme styles against — renaming either here or in
+    // theme.css without the other silently breaks reading-position tracking
+    expect(html).toContain('.section-nav a[href^=\'#\']');
+    expect(html).toContain('"is-active"');
+    expect(html).toContain('"is-read"');
+    expect(html).toContain('setProperty("--spine"');
+    // the script runs after the content it observes
+    expect(html.indexOf("<p>Body</p>")).toBeLessThan(html.indexOf('"is-active"'));
+  });
 });

@@ -39,49 +39,56 @@
   --warn:         #8c5510;  --warn-soft: #faebcf;   /* Amber */
   --bad:          #b23320;  --bad-soft:  #f7e4df;   /* Red */
 
-  /* crypt signal cores — fills / markers */
+  /* crypt signal cores — section markers, fills, the spine */
   --cable:        #2c2f38;   /* black circulation / the spine */
-  --teal:         #4fb6a4;
-  --amber:        #f5a115;
-  --red:          #d83a2a;
-  --purple:       #7e45e5;
+  --teal:         #1e7c6c;
+  --amber:        #b57a10;
+  --red:          #c0392b;
+  --purple:       #6b3ad1;
+  --blue:         #2c6fd1;
   --seal:         #94968f;   /* drained — the absent */
 
   --shadow: none;            /* flat: weight lives in tone, not lift */
   --radius: 4px;
   --radius-sm: 3px;
   --maxw: 820px;
+  --nav-active-bg: rgba(30,124,108,.09);
 }
 
 /* Dark register — opt-in via <html data-theme="dark">. Light is the house
-   default. Neutral near-black (crypt palette), signal cores brightened. */
+   default. A cool ink ramp: the field, the lifted surface and the recess sit
+   far enough apart in value that code blocks and table heads read as distinct
+   objects rather than as one flat sheet, and the hairline stays visible above
+   the recess. Signal cores are brightened to survive on near-black. */
 :root[data-theme="dark"] {
-  --bg:           #0a0a0a;   /* Void — neutral near-black */
-  --surface:      #141414;
-  --surface-2:    #1c1c1c;
-  --text:         #ececec;
-  --text-muted:   #ababab;
-  --text-faint:   #8c8c8c;
-  --border:       #2a2a2a;
-  --border-strong:#3a3a3a;
+  --bg:           #0b0d11;   /* Void — cooled near-black */
+  --surface:      #141a23;
+  --surface-2:    #1b222d;   /* recess: code, table head, tiles */
+  --text:         #e9ecf1;
+  --text-muted:   #a7aebc;
+  --text-faint:   #868f9f;   /* clears 4.5:1 on the recess, not just the field */
+  --border:       #2b3341;
+  --border-strong:#3b4557;
 
-  --accent:       #5ec2b0;   /* Teal bright — live / interactive */
-  --accent-soft:  rgba(94,194,176,.13);
-  --accent-text:  #6fcdbb;
-  --accent-line:  rgba(111,205,187,.40);
+  --accent:       #57cdb8;   /* Teal bright — live / interactive */
+  --accent-soft:  rgba(87,205,184,.13);
+  --accent-text:  #74dcc7;
+  --accent-line:  rgba(116,220,199,.42);
 
-  --ok:           #5ec2b0;  --ok-soft:   rgba(94,194,176,.12);   /* teal */
-  --warn:         #f6af24;  --warn-soft: rgba(246,175,36,.12);   /* amber */
-  --bad:          #ed5a44;  --bad-soft:  rgba(237,90,68,.12);    /* red */
+  --ok:           #57cdb8;  --ok-soft:   rgba(87,205,184,.13);   /* teal */
+  --warn:         #f6b23a;  --warn-soft: rgba(246,178,58,.13);   /* amber */
+  --bad:          #f2695a;  --bad-soft:  rgba(242,105,90,.13);   /* red */
 
-  --cable:        #3c3c3c;   /* neutral spine */
-  --teal:         #5ec2b0;
-  --amber:        #f6af24;
-  --red:          #ed5a44;
-  --purple:       #9a6cf0;
-  --seal:         #6f6f6f;   /* drained */
+  --cable:        #333c4b;   /* the spine, unlit */
+  --teal:         #57cdb8;
+  --amber:        #f6b23a;
+  --red:          #f2695a;
+  --purple:       #a887f5;
+  --blue:         #6aa9ff;
+  --seal:         #6f7686;   /* drained */
 
   --shadow: none;
+  --nav-active-bg: rgba(87,205,184,.10);
 }
 :root[data-theme="dark"] * { scrollbar-color: rgba(236,236,236,.22) transparent; }
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(236,236,236,.18); }
@@ -134,21 +141,63 @@ body {
   letter-spacing: .01em;
 }
 .section-nav ul {
+  position: relative;
   margin: 0;
-  padding: 0 0 0 14px;
+  padding: 0;
   border-left: 1px solid var(--cable);   /* the conduit / spine */
   list-style: none;
 }
+/* the lit portion of the spine — tracks how far the reader has descended.
+   --spine is set by the section-nav script; with scripting off it stays 0. */
+.section-nav ul::before {
+  content: "";
+  position: absolute; left: -1px; top: 0;
+  width: 1px; height: var(--spine, 0%);
+  background: var(--accent);
+  transition: height .18s ease;
+}
 .section-nav li { margin: 0; }
 .section-nav a {
+  position: relative;
   display: block;
-  padding: 5px 0;
+  padding: 5px 9px 5px 14px;
   color: var(--text-muted);
   font-size: .85rem;
   line-height: 1.35;
   text-decoration: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  transition: color .14s ease, background-color .14s ease;
 }
-.section-nav a:hover { color: var(--accent-text); }
+.section-nav a::before {                 /* the tick sitting on the spine */
+  content: "";
+  position: absolute; left: -3px; top: 50%;
+  width: 5px; height: 5px; margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--cable);
+  transform: scale(.8);
+  transition: background-color .14s ease, transform .14s ease, box-shadow .14s ease;
+}
+.section-nav a:hover { color: var(--accent-text); background: var(--nav-active-bg); }
+.section-nav a:hover::before { background: var(--border-strong); }
+.section-nav a.is-active {
+  color: var(--accent-text);
+  font-weight: 600;
+  background: var(--nav-active-bg);
+}
+.section-nav a.is-active::before {
+  background: var(--accent);
+  transform: scale(1.35);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.section-nav a.is-read { color: var(--text-faint); }
+
+/* ----- reading progress — a hairline at the top of the viewport ----- */
+.reading-progress {
+  position: fixed; top: 0; left: 0; z-index: 60;
+  height: 2px; width: 0;
+  background: linear-gradient(90deg, var(--teal), var(--blue) 55%, var(--purple));
+  transition: width .08s linear;
+}
 
 /* ----- header ----- */
 h1 {
@@ -165,9 +214,35 @@ h1 {
 .meta .sep { color: var(--text-faint); }
 
 /* ----- headings & text ----- */
+/* Each top-level section is assigned one signal core, and its heading marker,
+   list markers, quote rule and code gutter all inherit it — so a section reads
+   as one object and the color sequence becomes a scanning aid. Status color
+   (ok / warn / bad) never comes from here; it stays semantic. */
+.page-content > section,
+.page > section { --marker: var(--accent); }
+.page-content > section:nth-of-type(6n+1),
+.page > section:nth-of-type(6n+1) { --marker: var(--teal); }
+.page-content > section:nth-of-type(6n+2),
+.page > section:nth-of-type(6n+2) { --marker: var(--blue); }
+.page-content > section:nth-of-type(6n+3),
+.page > section:nth-of-type(6n+3) { --marker: var(--amber); }
+.page-content > section:nth-of-type(6n+4),
+.page > section:nth-of-type(6n+4) { --marker: var(--purple); }
+.page-content > section:nth-of-type(6n+5),
+.page > section:nth-of-type(6n+5) { --marker: var(--red); }
+.page-content > section:nth-of-type(6n+6),
+.page > section:nth-of-type(6n+6) { --marker: var(--seal); }
+
 h2 {
   font-size: 1.32rem; line-height: 1.25; letter-spacing: -.006em; font-weight: 600;
   margin: 48px 0 14px; padding-top: 4px;
+  display: flex; align-items: baseline; gap: 10px;
+}
+section > h2::before {
+  content: ""; flex: none;
+  width: 7px; height: 7px; border-radius: 1px;
+  background: var(--marker, var(--accent));
+  transform: translateY(-2px);
 }
 h3 { font-size: 1.04rem; font-weight: 600; margin: 32px 0 10px; }
 p  { margin: 0 0 16px; }
@@ -190,11 +265,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 
 ul, ol { margin: 0 0 16px; padding-left: 1.3em; }
 li { margin: 6px 0; }
-li::marker { color: var(--text-faint); }
+li::marker { color: var(--marker, var(--text-faint)); }
 
 blockquote {
   margin: 20px 0; padding: 2px 0 2px 18px;
-  border-left: 2px solid var(--border-strong);
+  border-left: 2px solid var(--marker, var(--border-strong));
   color: var(--text-muted);
 }
 
@@ -205,6 +280,7 @@ code {
 }
 pre {
   background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 2px solid var(--marker, var(--accent));
   border-radius: var(--radius-sm); padding: 14px 16px; overflow-x: auto;
   font-size: .86rem; line-height: 1.55; margin: 0 0 18px;
 }
@@ -226,8 +302,13 @@ p, li, dd, blockquote { overflow-wrap: anywhere; }
 }
 .stat {
   background: var(--surface-2);
-  border-radius: var(--radius); padding: 15px 17px;
+  border-top: 2px solid var(--tint, var(--accent));
+  border-radius: var(--radius); padding: 13px 17px 15px;
 }
+.stat:nth-child(4n+1) { --tint: var(--teal); }
+.stat:nth-child(4n+2) { --tint: var(--blue); }
+.stat:nth-child(4n+3) { --tint: var(--amber); }
+.stat:nth-child(4n+4) { --tint: var(--purple); }
 .stat .label {
   font-size: .82rem; font-weight: 500; color: var(--text-muted);
   margin-bottom: 7px; letter-spacing: .01em;
@@ -251,9 +332,10 @@ caption {
   text-align: left;
 }
 thead th {
-  text-align: left; font-weight: 600; font-size: .85rem;
-  color: var(--text-muted);
-  padding: 10px 14px; border-bottom: 1px solid var(--border-strong);
+  text-align: left; font-weight: 600; font-size: .78rem;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 9px 14px; border-bottom: 1px solid var(--border-strong);
   white-space: nowrap;
 }
 tbody td,
@@ -357,15 +439,21 @@ footer {
   .section-nav ul {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px 16px;
+    gap: 5px 8px;
     padding: 0;
     border-left: 0;
   }
-  .section-nav a { padding: 2px 0; }
+  .section-nav ul::before { display: none; }
+  .section-nav a { padding: 3px 8px; border-radius: var(--radius-sm); }
+  .section-nav a::before { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .reading-progress,
+  .section-nav ul::before,
+  .section-nav a,
+  .section-nav a::before { transition: none; }
 }
 
 @media print {
@@ -381,7 +469,7 @@ footer {
   }
   .page { max-width: none; padding: 0; }
   .page-layout { display: block; }
-  .section-nav { display: none; }
+  .section-nav, .reading-progress { display: none; }
   a { color: inherit; text-decoration: underline; }
   .stat, table, .facts { box-shadow: none; }
 }

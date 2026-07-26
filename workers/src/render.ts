@@ -31,6 +31,20 @@ export const THEME_TOGGLE_BUTTON = `<button class="theme-toggle" type="button" a
 export const THEME_TOGGLE_SCRIPT = `<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle"),mq=matchMedia("(prefers-color-scheme: dark)");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});try{if(!localStorage.getItem("waymark-theme"))mq.addEventListener("change",function(e){apply(e.matches?"dark":"light");});}catch(e){}})();</script>
 `;
 
+// The reading-progress hairline, injected on every themed page. It stays at
+// zero width unless the section-nav script runs, and is hidden when printing.
+// Byte-for-byte the same markup as internal/web/server.go's readingProgressBar.
+export const READING_PROGRESS_BAR = `<div class="reading-progress" aria-hidden="true"></div>
+`;
+
+// Progressive enhancement for .page-layout reports: marks the section the
+// reader is in, dims the ones behind them, lights the nav spine, and drives
+// the reading-progress hairline. With scripting off the nav is exactly the
+// list of links it always was, so nothing is hidden behind this.
+// Byte-for-byte the same script as internal/web/server.go's sectionNavScript.
+export const SECTION_NAV_SCRIPT = `<script>(function(){var links=[].slice.call(document.querySelectorAll(".section-nav a[href^='#']")),bar=document.querySelector(".reading-progress");if(!links.length&&!bar)return;var sections=links.map(function(a){return document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));}),list=document.querySelector(".section-nav ul"),current=-1,ticking=false;function paint(i){if(i===current)return;current=i;links.forEach(function(a,n){a.classList.toggle("is-active",n===i);a.classList.toggle("is-read",n<i);if(n===i)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");});if(list)list.style.setProperty("--spine",(links.length>1?i/(links.length-1)*100:100)+"%");}function pick(){var line=innerHeight*.28,best=0,i,s;for(i=0;i<sections.length;i++){s=sections[i];if(s&&s.getBoundingClientRect().top<=line)best=i;}if(sections.length&&innerHeight+scrollY>=document.body.scrollHeight-4)best=sections.length-1;if(links.length)paint(best);if(bar){var max=document.documentElement.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,scrollY/max*100):0)+"%";}}function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){pick();ticking=false;});}addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);pick();})();</script>
+`;
+
 /** Wraps body content in a full HTML document that links the house
  * stylesheet. The agent only writes the content that lives inside .page.
  * Mirrors renderThemed() in internal/web/server.go line-for-line. */
@@ -43,6 +57,7 @@ export function renderThemed(title: string, content: string): string {
     `<link rel="stylesheet" href="/theme.css">\n` +
     THEME_INIT_SCRIPT +
     `</head>\n<body>\n` +
+    READING_PROGRESS_BAR +
     THEME_TOGGLE_BUTTON +
     `<main class="page">\n` +
     content +
@@ -50,6 +65,7 @@ export function renderThemed(title: string, content: string): string {
     `<a href="https://github.com/Onkarj012/Waymark" target="_blank" rel="noopener noreferrer">generated on Waymark</a>\n` +
     `</footer>\n</main>\n` +
     THEME_TOGGLE_SCRIPT +
+    SECTION_NAV_SCRIPT +
     `</body>\n</html>\n`
   );
 }
