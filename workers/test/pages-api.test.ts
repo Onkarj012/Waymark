@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFakeD1, type FakeD1 } from "./fake-d1";
 import { handleCreate, handleDelete, handleGetMeta, handleList, handleUpdate, ttlToExpiry } from "../src/pages-api";
 import { nowIso } from "../src/store";
@@ -85,7 +85,7 @@ describe("handleCreate", () => {
 describe("handleList / handleGetMeta / handleUpdate / handleDelete", () => {
   async function createOne(title = "Item") {
     const res = await handleCreate(db, publicUrl, req({ title, html: "<p>x</p>" }));
-    return (await res.json()) as { id: string };
+    return (await res.json()) as { id: string; updated_at: string };
   }
 
   it("lists created pages newest first", async () => {
@@ -116,6 +116,32 @@ describe("handleList / handleGetMeta / handleUpdate / handleDelete", () => {
     const body = (await res.json()) as { title: string; raw: boolean };
     expect(body.title).toBe("Original");
     expect(body.raw).toBe(true);
+  });
+
+  it("conditionally updates with authoritative metadata and rejects a stale timestamp", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    const created = await createOne("Original");
+    const first = new Request(`http://control.localhost/api/pages/${created.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Fresh", if_updated_at: created.updated_at }),
+    });
+    const updated = await handleUpdate(db, publicUrl, created.id, first);
+    expect(updated.status).toBe(200);
+    const updatedBody = (await updated.json()) as { title: string; updated_at: string };
+    expect(updatedBody.title).toBe("Fresh");
+    expect(updatedBody.updated_at).toBe("2026-01-01T00:00:00.001Z");
+
+    const stale = new Request(`http://control.localhost/api/pages/${created.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Stale", if_updated_at: created.updated_at }),
+    });
+    expect((await handleUpdate(db, publicUrl, created.id, stale)).status).toBe(409);
+    const meta = (await (await handleGetMeta(db, publicUrl, created.id)).json()) as { title: string };
+    expect(meta.title).toBe("Fresh");
+    vi.useRealTimers();
   });
 
   it("rejects wrong-typed fields on update with 400 and leaves the page untouched", async () => {

@@ -20,12 +20,27 @@ func Hosted(title, content string) string {
 func Standalone(title, content, css string) string {
 	var stylesheet strings.Builder
 	stylesheet.WriteString("<style>\n")
-	stylesheet.WriteString(css)
+	stylesheet.WriteString(escapeStyleEndTag(css))
 	if css != "" && !strings.HasSuffix(css, "\n") {
 		stylesheet.WriteByte('\n')
 	}
 	stylesheet.WriteString("</style>\n")
 	return themedDocument(title, content, stylesheet.String())
+}
+
+// escapeStyleEndTag keeps caller CSS inside the stylesheet element. CSS
+// escapes are understood by the CSS parser, while the HTML parser no longer
+// sees a case-insensitive </style sequence that could terminate the element.
+func escapeStyleEndTag(css string) string {
+	var b strings.Builder
+	for i := 0; i < len(css); i++ {
+		if css[i] == '<' && i+7 <= len(css) && strings.EqualFold(css[i:i+7], "</style") {
+			b.WriteString(`\3c `)
+			continue
+		}
+		b.WriteByte(css[i])
+	}
+	return b.String()
 }
 
 func themedDocument(title, content, stylesheet string) string {
@@ -89,6 +104,10 @@ var forbiddenThemedElements = map[string]struct{}{
 	"body":   {},
 	"style":  {},
 	"script": {},
+	"link":   {},
+	"base":   {},
+	"meta":   {},
+	"title":  {},
 }
 
 // ValidateThemedBody rejects document-level, style, and script markup that

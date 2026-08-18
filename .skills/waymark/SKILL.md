@@ -5,9 +5,11 @@ description: Preview, publish, and safely maintain polished HTML artifacts with 
 
 # Waymark
 
-Create body-only themed HTML, inspect it offline, and publish only with explicit
-authorization. The house theme supplies the visual system; use raw mode only for
-generic non-plan artifacts that genuinely require a complete custom document.
+Prepare the artifact, inspect it offline, and publish only with explicit
+authorization. Visual plans use themed body-only HTML and the house component
+grammar. Generic reports use raw, complete, self-contained HTML so their
+composing agent owns the layout, CSS, typography, responsiveness, and print
+rules.
 
 ## Resolve The CLI
 
@@ -35,12 +37,12 @@ public.
 
 ## Required Offline Preview
 
-For every local body-only source intended for publication, generate a standalone
-preview before requesting publication or update approval:
+For every local themed body-only source intended for publication, generate a
+standalone preview before requesting publication or update approval:
 
 ```bash
-waymark preview --title "Quarterly review" \
-  --output quarterly-review.html quarterly-review.waymark.html
+waymark preview --title "Release plan" \
+  --output release-plan.html release-plan.waymark.html
 ```
 
 The exact interface is:
@@ -58,7 +60,10 @@ reinspect the preview before approval.
 A successful preview is the required themed-body structural check: full-document
 tags, `<style>`, and `<script>` are rejected. Also inspect the generated file for
 the intended title, section order, navigation targets, textual equivalents, and
-absence of clipped or missing content.
+absence of clipped or missing content. `waymark preview` accepts themed
+body-only input; it has no `--raw` mode. For an approved raw artifact, inspect
+the complete local file separately in a browser or with the file URL, then use
+`waymark create --raw` or `waymark update --raw` only after that inspection.
 
 ## Visual Plan Contract
 
@@ -98,24 +103,26 @@ latest preview.
 
 ## Publish An Approved Artifact
 
-Generic non-plan reports remain supported. Prefer themed body-only HTML and keep
-a local source when the page may be maintained:
+Use the approved source and its required rendering mode. Generic reports are
+raw, complete HTML documents; visual plans are themed body-only sources:
 
 ```bash
-waymark create --title "Quarterly review" --ttl 7 quarterly-review.waymark.html
+# Raw report
+waymark create --raw --json --title "Quarterly review" --ttl 7 quarterly-review.html
+
+# Themed visual plan
+waymark create --json --title "Release plan" --ttl 0 release-plan.waymark.html
 ```
 
-Use `--ttl 0` only when the user explicitly wants a permanent page. The command
-prints the public URL; verify success and return that URL. For a maintained page,
-record its page ID, URL, TTL, and returned `updated_at` metadata beside the local
-canonical source.
+Use `--ttl 0` only when the user explicitly wants a permanent page. Verify
+success and return the URL. For a maintained page, record its page ID, URL, TTL,
+and the returned JSON `updated_at` beside the local canonical source.
 
-One-off generic reports may use stdin, but must still be previewed from the same
-body before approval:
+A one-off raw report may use stdin only after the exact complete document has
+been inspected locally:
 
 ```bash
-waymark preview --title "Quarterly review" --output /tmp/quarterly-review.html - < body.html
-waymark create --title "Quarterly review" - < body.html
+waymark create --raw --title "Quarterly review" - < quarterly-review.html
 ```
 
 ## Update Without Overwriting Others
@@ -129,27 +136,32 @@ its exact `updated_at` value with the last known remote timestamp. If the local
 record has no known timestamp, establish and record the current value before
 seeking approval. Immediately before the approved update, fetch it again. If it
 differs from the approved expected value, stop and reconcile instead of
-overwriting.
+overwriting. The JSON response from `waymark get --json`, `waymark update
+--json`, or the approved create command is the only source to record as
+`updated_at`; do not infer it from human-readable output.
 
 ```bash
-waymark update <id> quarterly-review.waymark.html
+waymark update --raw --json --if-updated-at "$EXPECTED_UPDATED_AT" <id> quarterly-review.html
 ```
 
-After an update, verify success and record the new `updated_at`. Never delete a
-page automatically.
+Use `--raw` for reports and omit it for themed visual plans. The server
+atomically checks `--if-updated-at` before writing. If the command
+returns a 409 conflict, stop and reconcile with a fresh `waymark get --json`
+before attempting another update; never overwrite an intervening change.
+After a successful JSON update, record its authoritative `updated_at`. Never
+delete a page automatically.
 
 ## Hard Contract
 
 - Put every flag before positional arguments.
-- Default to themed mode. Supply body content only: no `doctype`, `html`, `head`,
-  `body`, `style`, or `script` elements.
+- Visual plans use themed body-only HTML: no `doctype`, `html`, `head`, `body`,
+  `style`, or `script` elements, and no raw mode.
+- Generic reports use raw, complete, self-contained HTML and own their design,
+  responsive behavior, and print rules. Inspect the exact document separately;
+  preview accepts themed body-only input only.
 - Escape external or user-provided text before inserting it. Waymark trusts
   publisher HTML and does not sanitize it.
 - Do not invent authorship, dates, confidentiality labels, status, or other
   metadata.
-- Use raw mode only for an approved generic non-plan artifact that genuinely
-  needs a complete document, custom CSS, or JavaScript. Preview's body-only
-  validation does not apply to raw input, so inspect its full-document structure
-  separately before requesting publication approval.
-- Use themed components only when they improve comprehension. Plain semantic
-  headings, paragraphs, lists, links, quotes, code, and tables are valid.
+- Use themed components only for visual plans and only when they improve
+  comprehension. Plain semantic HTML remains valid.

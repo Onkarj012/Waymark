@@ -66,7 +66,8 @@ func TestSectionNavigationResponsiveContract(t *testing.T) {
 	}
 }
 
-// The section-nav script in internal/web/server.go sets these hooks. If a
+// The section-nav script in internal/render/render.go (with a Worker mirror)
+// sets these hooks. If a
 // selector here is renamed without renaming it there, the nav silently stops
 // reflecting reading position.
 func TestSectionNavigationActiveStateContract(t *testing.T) {
@@ -175,13 +176,45 @@ func TestVisualPlanResponsiveContract(t *testing.T) {
 
 func TestVisualPlanPrintContract(t *testing.T) {
 	for _, rule := range []string{
-		"article.plan[data-plan-profile] { --plan-signal: #333333; --plan-signal-soft: #f5f5f5; --plan-track: #777777; }",
+		"article.plan[data-plan-profile] { --plan-signal: #333333; --plan-track: #777777; }",
 		".change-state, .system-flow, .phase-detail, .decision-option, .open-questions { break-inside: avoid; }",
 		".risk-item .status-text,\n  .verification-item .status-text { color: #111111 !important; }",
 	} {
 		if !strings.Contains(CSS, rule) {
 			t.Errorf("visual plan print rule %q was not found", rule)
 		}
+	}
+}
+
+func TestPrintDarkRootResetsSignalCore(t *testing.T) {
+	start := strings.Index(CSS, "@media print {\n  :root")
+	if start < 0 {
+		t.Fatal("print block was not found")
+	}
+	end := strings.Index(CSS[start:], "\n  }\n")
+	if end < 0 {
+		t.Fatal("print dark-root block was not terminated")
+	}
+	block := CSS[start : start+end]
+	for _, rule := range []string{
+		"--border-strong: #999999;",
+		"--accent: #333333;",
+		"--accent-soft: #f5f5f5;",
+		"--accent-text: #111111;",
+		"--cable: #777777;",
+		"--teal: #333333;",
+		"--amber: #555555;",
+		"--red: #444444;",
+		"--purple: #666666;",
+		"--blue: #222222;",
+		"--seal: #888888;",
+	} {
+		if !strings.Contains(block, rule) {
+			t.Errorf("print signal reset %q was not found", rule)
+		}
+	}
+	if strings.Contains(CSS, "--plan-signal-soft") {
+		t.Fatal("unused --plan-signal-soft declaration remains")
 	}
 }
 

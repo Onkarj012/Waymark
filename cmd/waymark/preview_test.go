@@ -116,6 +116,34 @@ func TestPreviewRefusesOverwriteUnlessForced(t *testing.T) {
 	}
 }
 
+func TestPreviewForceFailurePreservesExistingOutput(t *testing.T) {
+	dir := t.TempDir()
+	bodyPath := filepath.Join(dir, "body.html")
+	output := filepath.Join(dir, "preview.html")
+	if err := os.WriteFile(bodyPath, []byte("<p>New</p>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(output, []byte("valid existing preview"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	previousRename := renamePreview
+	renamePreview = func(_, _ string) error { return errors.New("injected replace failure") }
+	t.Cleanup(func() { renamePreview = previousRename })
+
+	err := runPreview([]string{"--title", "Preview", "--output", output, "--force", bodyPath}, strings.NewReader(""), &bytes.Buffer{}, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "replace output") {
+		t.Fatalf("forced replacement error = %v", err)
+	}
+	got, readErr := os.ReadFile(output)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(got) != "valid existing preview" {
+		t.Fatalf("forced replacement changed existing output to %q", got)
+	}
+}
+
 func TestPreviewRejectsForbiddenThemedMarkup(t *testing.T) {
 	for _, body := range []string{
 		`<!DOCTYPE html><p>Body</p>`,

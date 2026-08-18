@@ -61,6 +61,38 @@ func TestStoreLifecycleAndPermissions(t *testing.T) {
 	}
 }
 
+func TestSaveIfUpdatedAtIsAtomicAndRejectsStaleWriter(t *testing.T) {
+	st, err := Open(filepath.Join(t.TempDir(), "pages.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { st.Close() })
+
+	now := time.Now().UTC().Truncate(time.Second)
+	p := &Page{ID: "page1", Title: "First", HTML: "x", CreatedAt: now, UpdatedAt: now}
+	if err := st.Create(p); err != nil {
+		t.Fatal(err)
+	}
+	p.Title = "Fresh"
+	p.UpdatedAt = now.Add(time.Minute)
+	if err := st.SaveIfUpdatedAt(p, now); err != nil {
+		t.Fatal(err)
+	}
+
+	p.Title = "Stale"
+	p.UpdatedAt = now.Add(2 * time.Minute)
+	if err := st.SaveIfUpdatedAt(p, now); !errors.Is(err, ErrConflict) {
+		t.Fatalf("stale SaveIfUpdatedAt() error = %v, want ErrConflict", err)
+	}
+	got, err := st.Get(p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != "Fresh" {
+		t.Fatalf("stale writer changed title to %q", got.Title)
+	}
+}
+
 func TestDeleteExpired(t *testing.T) {
 	st, err := Open(filepath.Join(t.TempDir(), "pages.db"))
 	if err != nil {

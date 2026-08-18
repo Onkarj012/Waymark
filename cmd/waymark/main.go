@@ -13,7 +13,7 @@
 //	waymark preview --title "Title" --output FILE [--force] <file|->
 //	waymark list    [--limit N] [--json]
 //	waymark get     [--json] <id>
-//	waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
+//	waymark update  [--title T] [--slug s] [--raw] [--ttl N] [--if-updated-at RFC3339] <id> [<file|->]
 //	waymark delete  <id>
 //	waymark version
 package main
@@ -96,7 +96,7 @@ Commands:
   preview --title "Title" --output FILE [--force] <file|->         render offline HTML
   list    [--limit N] [--json]                                    list pages
   get     [--json] <id>                                           show page metadata
-  update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file>]  replace a page
+  update  [--title T] [--slug s] [--raw] [--ttl N] [--if-updated-at RFC3339] <id> [<file>]  replace a page
   delete  <id>                                                    delete a page
   version                                                         print version
 
@@ -155,6 +155,7 @@ func cmdUpdate(args []string) error {
 	slug := fs.String("slug", "", "new slug")
 	raw := fs.Bool("raw", false, "serve as a complete HTML document (no house theme)")
 	ttl := fs.Int("ttl", 0, "auto-delete after N days (0 = never)")
+	ifUpdatedAt := fs.String("if-updated-at", "", "only update if updated_at still matches this RFC3339 timestamp")
 	jsonOut := fs.Bool("json", false, "print the raw JSON response")
 	server := commonFlags(fs)
 	if err := parse(fs, args); err != nil {
@@ -188,7 +189,10 @@ func cmdUpdate(args []string) error {
 	if set["ttl"] {
 		req["ttl_days"] = *ttl
 	}
-	if len(req) == 0 {
+	if set["if-updated-at"] {
+		req["if_updated_at"] = *ifUpdatedAt
+	}
+	if len(req) == 0 || (len(req) == 1 && set["if-updated-at"]) {
 		return errors.New("nothing to update: pass a <file> and/or --title/--slug/--raw/--ttl")
 	}
 

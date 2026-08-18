@@ -50,6 +50,16 @@ func TestStandaloneEmbedsCallerCSSCleanly(t *testing.T) {
 	}
 }
 
+func TestStandaloneEscapesCaseInsensitiveStyleEndTagInCallerCSS(t *testing.T) {
+	got := Standalone("Preview", "<p>Body</p>", `.x::after { content: "</StYlE><script>bad</script>"; }`)
+	if strings.Count(strings.ToLower(got), "</style>") != 1 {
+		t.Fatal("caller CSS added an extra style end tag to standalone output")
+	}
+	if !strings.Contains(got, `\3c /StYlE`) {
+		t.Fatalf("caller CSS was not safely escaped: %s", got)
+	}
+}
+
 func TestValidateThemedBody(t *testing.T) {
 	for _, content := range []string{
 		`<article><header><h1>Plan</h1></header><section><p>Body</p></section></article>`,
@@ -70,6 +80,10 @@ func TestValidateThemedBody(t *testing.T) {
 		`<body>Body</body>`,
 		`<style>.x{}</style>`,
 		`<script>alert(1)</script>`,
+		`<link rel="stylesheet" href="evil.css">`,
+		`<base href="https://evil.example/">`,
+		`<meta http-equiv="refresh" content="0;url=https://evil.example/">`,
+		`<title>Title</title>`,
 	} {
 		if err := ValidateThemedBody(content); err == nil {
 			t.Errorf("ValidateThemedBody(%q) unexpectedly succeeded", content)

@@ -191,11 +191,12 @@ type createReq struct {
 }
 
 type updateReq struct {
-	Title   *string `json:"title,omitempty"`
-	Slug    *string `json:"slug,omitempty"`
-	HTML    *string `json:"html,omitempty"`
-	Raw     *bool   `json:"raw,omitempty"`
-	TTLDays *int    `json:"ttl_days,omitempty"` // >0 sets expiry; <=0 clears it
+	Title       *string    `json:"title,omitempty"`
+	Slug        *string    `json:"slug,omitempty"`
+	HTML        *string    `json:"html,omitempty"`
+	Raw         *bool      `json:"raw,omitempty"`
+	TTLDays     *int       `json:"ttl_days,omitempty"` // >0 sets expiry; <=0 clears it
+	IfUpdatedAt *time.Time `json:"if_updated_at,omitempty"`
 }
 
 type pageResp struct {
@@ -341,9 +342,26 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if req.TTLDays != nil {
 		p.ExpiresAt = ttlToExpiry(now, *req.TTLDays)
 	}
+	if !now.After(p.UpdatedAt) {
+		now = p.UpdatedAt.UTC().Add(time.Nanosecond)
+	}
 	p.UpdatedAt = now
 
-	if err := s.store.Save(p); err != nil {
+	var saveErr error
+	if req.IfUpdatedAt != nil {
+		saveErr = s.store.SaveIfUpdatedAt(p, *req.IfUpdatedAt)
+	} else {
+		saveErr = s.store.Save(p)
+	}
+	if errors.Is(saveErr, store.ErrConflict) {
+		s.writeErr(w, http.StatusConflict, "page was updated by someone else")
+		return
+	}
+	if errors.Is(saveErr, store.ErrNotFound) {
+		s.writeErr(w, http.StatusNotFound, "page not found")
+		return
+	}
+	if saveErr != nil {
 		s.writeErr(w, http.StatusInternalServerError, "could not save page")
 		return
 	}

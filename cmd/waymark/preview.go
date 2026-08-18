@@ -83,26 +83,43 @@ func writePreview(path string, document []byte, force bool) error {
 		return fmt.Errorf("create output directory %q: %w", parent, err)
 	}
 
-	flags := os.O_WRONLY | os.O_CREATE
-	if force {
-		flags |= os.O_TRUNC
-	} else {
-		flags |= os.O_EXCL
-	}
-	file, err := os.OpenFile(path, flags, 0o644)
-	if err != nil {
-		if !force && os.IsExist(err) {
-			return fmt.Errorf("output %q already exists; pass --force to overwrite", path)
+	if !force {
+		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		if err != nil {
+			if os.IsExist(err) {
+				return fmt.Errorf("output %q already exists; pass --force to overwrite", path)
+			}
+			return fmt.Errorf("open output %q: %w", path, err)
 		}
-		return fmt.Errorf("open output %q: %w", path, err)
+		if err := writePreviewFile(path, file, document); err != nil {
+			_ = os.Remove(path)
+			return err
+		}
+		return nil
 	}
 
-	removePartial := true
-	defer func() {
-		if removePartial {
-			_ = os.Remove(path)
-		}
-	}()
+	temp, err := os.CreateTemp(parent, "."+filepath.Base(path)+".tmp-")
+	if err != nil {
+		return fmt.Errorf("create temporary output for %q: %w", path, err)
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	if err := temp.Chmod(0o644); err != nil {
+		_ = temp.Close()
+		return fmt.Errorf("set temporary output mode: %w", err)
+	}
+	if err := writePreviewFile(tempPath, temp, document); err != nil {
+		return err
+	}
+	if err := renamePreview(tempPath, path); err != nil {
+		return fmt.Errorf("replace output %q: %w", path, err)
+	}
+	return nil
+}
+
+var renamePreview = os.Rename
+
+func writePreviewFile(path string, file *os.File, document []byte) error {
 	if _, err := file.Write(document); err != nil {
 		_ = file.Close()
 		return fmt.Errorf("write output %q: %w", path, err)
@@ -110,6 +127,5 @@ func writePreview(path string, document []byte, force bool) error {
 	if err := file.Close(); err != nil {
 		return fmt.Errorf("close output %q: %w", path, err)
 	}
-	removePartial = false
 	return nil
 }

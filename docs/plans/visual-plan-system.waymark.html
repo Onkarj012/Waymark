@@ -15,18 +15,21 @@
   </aside>
 
   <div class="page-content">
-    <header>
-      <p class="label">SYSTEMS PROFILE · IMPLEMENTATION PLAN</p>
+    <header class="plan-identity">
+      <p class="identity-kicker">SYSTEMS PROFILE · IMPLEMENTATION PLAN</p>
       <h1>Visual-first agent planning system</h1>
-      <p class="dek">Turn settled decisions into plans people can understand at a glance—without letting plan creation become a project of its own.</p>
-      <div class="meta">
-        <span class="badge warn">Draft</span>
-        <span>Awaiting user approval</span>
-        <span class="sep">|</span>
-        <span>Waymark + shared agent skills</span>
-        <span class="sep">|</span>
-        <span>Permanent after approval</span>
-      </div>
+      <p class="dek identity-summary">Turn settled decisions into plans people can understand at a glance—without letting plan creation become a project of its own.</p>
+      <dl class="identity-register">
+        <div>
+          <dt>Status</dt><dd>Draft · Awaiting user approval</dd>
+        </div>
+        <div>
+          <dt>Surfaces</dt><dd>Waymark + shared agent skills</dd>
+        </div>
+        <div>
+          <dt>Publication</dt><dd>Permanent after approval</dd>
+        </div>
+      </dl>
     </header>
 
     <div class="callout warn">
@@ -61,28 +64,27 @@
     <section id="change">
       <h2>Change map</h2>
       <figure aria-labelledby="change-caption">
-        <svg viewBox="0 0 900 280" role="img" aria-labelledby="change-title change-desc">
-          <title id="change-title">Transition from text-heavy plans to visual, approval-gated plans</title>
+        <svg viewBox="0 0 900 280" role="img" aria-label="Transition from text-heavy plans to visual, approval-gated plans" aria-describedby="change-desc">
           <desc id="change-desc">Three connected stages show the current text-heavy plan, the new visual compiler, and a human-approved executable plan.</desc>
-          <defs><marker id="arrow-change" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"></path></marker></defs>
-          <rect x="24" y="54" width="230" height="150" rx="4" fill="var(--surface-2)" stroke="var(--border-strong)"></rect>
-          <text x="48" y="88" fill="var(--text-faint)" font-size="16" font-family="var(--font-mono)">CURRENT</text>
-          <text x="48" y="125" fill="var(--text)" font-size="24" font-weight="600" font-family="var(--font-sans)">Text-heavy plan</text>
-          <text x="48" y="157" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Long read before orientation</text>
-          <text x="48" y="181" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Generic link-only handoff</text>
-          <line x1="274" y1="129" x2="326" y2="129" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
-          <rect x="342" y="30" width="240" height="198" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"></rect>
-          <text x="366" y="66" fill="var(--accent-text)" font-size="16" font-family="var(--font-mono)">VISUAL COMPILER</text>
-          <text x="366" y="103" fill="var(--text)" font-size="24" font-weight="600" font-family="var(--font-sans)">Plan-shaped view</text>
-          <text x="366" y="137" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Identity + visual grammar</text>
-          <text x="366" y="163" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Checksums + local preview</text>
-          <text x="366" y="189" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">One bounded quality pass</text>
-          <line x1="602" y1="129" x2="654" y2="129" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
-          <rect x="670" y="54" width="206" height="150" rx="4" fill="var(--surface-2)" stroke="var(--border-strong)"></rect>
-          <text x="694" y="88" fill="var(--ok)" font-size="16" font-family="var(--font-mono)">DESTINATION</text>
-          <text x="694" y="125" fill="var(--text)" font-size="24" font-weight="600" font-family="var(--font-sans)">Human approval</text>
-          <text x="694" y="157" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Understand first</text>
-          <text x="694" y="181" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Then publish + hand off</text>
+          <defs><marker id="arrow-change" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" style="fill: var(--accent)"></path></marker></defs>
+          <rect x="24" y="54" width="230" height="150" rx="4" style="fill: var(--surface-2); stroke: var(--border-strong)"></rect>
+          <text x="48" y="88" style="fill: var(--text-faint); font-family: var(--font-mono)" font-size="16">CURRENT</text>
+          <text x="48" y="125" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Text-heavy plan</text>
+          <text x="48" y="157" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Long read before orientation</text>
+          <text x="48" y="181" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Generic link-only handoff</text>
+          <line x1="274" y1="129" x2="326" y2="129" style="stroke: var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
+          <rect x="342" y="30" width="240" height="198" rx="4" style="fill: var(--accent-soft); stroke: var(--accent)"></rect>
+          <text x="366" y="66" style="fill: var(--accent-text); font-family: var(--font-mono)" font-size="16">VISUAL COMPILER</text>
+          <text x="366" y="103" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Plan-shaped view</text>
+          <text x="366" y="137" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Identity + visual grammar</text>
+          <text x="366" y="163" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Checksums + local preview</text>
+          <text x="366" y="189" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">One bounded quality pass</text>
+          <line x1="602" y1="129" x2="654" y2="129" style="stroke: var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
+          <rect x="670" y="54" width="206" height="150" rx="4" style="fill: var(--surface-2); stroke: var(--border-strong)"></rect>
+          <text x="694" y="88" style="fill: var(--ok); font-family: var(--font-mono)" font-size="16">DESTINATION</text>
+          <text x="694" y="125" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Human approval</text>
+          <text x="694" y="157" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Understand first</text>
+          <text x="694" y="181" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Then publish + hand off</text>
         </svg>
         <figcaption id="change-caption">The change is not Markdown with decoration. It is a bounded compiler from settled decisions into a visual review surface and an exact executor specification.</figcaption>
       </figure>

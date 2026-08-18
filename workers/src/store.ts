@@ -38,7 +38,7 @@ import type {
   PageMeta,
   PollOutcome,
 } from "./types";
-import { NotFoundError } from "./types";
+import { ConflictError, NotFoundError } from "./types";
 
 export function nowIso(d: Date = new Date()): string {
   return d.toISOString();
@@ -88,6 +88,27 @@ export async function savePage(db: D1Like, p: Page): Promise<void> {
     .bind(p.title, p.slug, p.html, p.raw ? 1 : 0, p.updatedAt, p.expiresAt, p.id)
     .run();
   if (!(result.meta.changes ?? 0)) throw new NotFoundError("page not found");
+}
+
+/** Updates a page only when its stored updated_at still equals expected. The
+ * predicate is part of the D1 UPDATE, so the check and write are atomic. */
+export async function savePageIfUpdatedAt(db: D1Like, p: Page, expected: string): Promise<void> {
+  const result = await db
+    .prepare(
+      `UPDATE pages SET title = ?, slug = ?, html = ?, raw = ?, updated_at = ?, expires_at = ?
+       WHERE id = ? AND updated_at = ?`,
+    )
+    .bind(p.title, p.slug, p.html, p.raw ? 1 : 0, p.updatedAt, p.expiresAt, p.id, expected)
+    .run();
+  if (result.meta.changes ?? 0) return;
+
+  try {
+    await getPage(db, p.id);
+  } catch (err) {
+    if (err instanceof NotFoundError) throw err;
+    throw err;
+  }
+  throw new ConflictError();
 }
 
 export async function deletePage(db: D1Like, id: string): Promise<void> {
