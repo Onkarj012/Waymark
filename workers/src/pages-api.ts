@@ -6,8 +6,8 @@
 import { BodyTooLargeError, checkFieldTypes, decodeStrict, isSet, readBodyText, type FieldType } from "./body";
 import { errJson, json } from "./http";
 import { newId } from "./id";
-import { NotFoundError, type D1Like, type Page, type PageMeta } from "./types";
-import { createPage, deletePage, getPage, listPages, nowIso, savePage } from "./store";
+import { ConflictError, NotFoundError, type D1Like, type Page, type PageMeta } from "./types";
+import { createPage, deletePage, getPage, listPages, nowIso, savePage, savePageIfUpdatedAt } from "./store";
 
 export interface PageResp {
   id: string;
@@ -53,6 +53,11 @@ function metaToResp(publicUrl: string, m: PageMeta): PageResp {
   };
 }
 
+function nextUpdatedAt(now: string, current: string): string {
+  if (Date.parse(now) > Date.parse(current)) return now;
+  return new Date(Date.parse(current) + 1).toISOString();
+}
+
 /** ttlToExpiry: converts a TTL in days to an absolute ISO expiry, or null if
  * days <= 0 (never expires). Mirrors ttlToExpiry() in server.go. */
 export function ttlToExpiry(now: string, days: number | undefined): string | null {
@@ -69,9 +74,12 @@ const PAGE_FIELD_TYPES: Readonly<Record<string, FieldType>> = {
   html: "string",
   raw: "boolean",
   ttl_days: "integer",
+  if_updated_at: "string",
 };
 
-async function readPageReq(request: Request) {
+const PAGE_KEYS = ["title", "slug", "html", "raw", "ttl_days"] as const;
+
+async function readPageReq(request: Request, allowPrecondition = false) {
   let text: string;
   try {
     text = await readBodyText(request);
@@ -79,7 +87,8 @@ async function readPageReq(request: Request) {
     if (err instanceof BodyTooLargeError) return { ok: false as const, status: 413, message: "request body too large" };
     throw err;
   }
-  const decoded = decodeStrict<Record<string, unknown>>(text, ["title", "slug", "html", "raw", "ttl_days"]);
+  const allowedKeys = allowPrecondition ? [...PAGE_KEYS, "if_updated_at"] : PAGE_KEYS;
+  const decoded = decodeStrict<Record<string, unknown>>(text, allowedKeys);
   if (!decoded.ok) return { ok: false as const, status: 400, message: decoded.message };
   const typeError = checkFieldTypes(decoded.value, PAGE_FIELD_TYPES);
   if (typeError) return { ok: false as const, status: 400, message: typeError };
@@ -157,9 +166,18 @@ export async function handleUpdate(
   id: string,
   request: Request,
 ): Promise<Response> {
-  const decoded = await readPageReq(request);
+  const decoded = await readPageReq(request, true);
   if (!decoded.ok) return errJson(decoded.status, decoded.message);
   const data = decoded.value;
+
+  let expectedUpdatedAt: string | undefined;
+  if (isSet(data, "if_updated_at")) {
+    const value = data.if_updated_at as string;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) || Number.isNaN(Date.parse(value))) {
+      return errJson(400, 'invalid JSON: field "if_updated_at" must be an RFC3339 timestamp');
+    }
+    expectedUpdatedAt = new Date(value).toISOString();
+  }
 
   let page: Page;
   try {
@@ -188,15 +206,18 @@ export async function handleUpdate(
   if (isSet(data, "raw")) {
     page.raw = data.raw as boolean;
   }
-  const now = nowIso();
+  const now = nextUpdatedAt(nowIso(), page.updatedAt);
   if (isSet(data, "ttl_days")) {
     page.expiresAt = ttlToExpiry(now, data.ttl_days as number);
   }
   page.updatedAt = now;
 
   try {
-    await savePage(db, page);
-  } catch {
+    if (expectedUpdatedAt === undefined) await savePage(db, page);
+    else await savePageIfUpdatedAt(db, page, expectedUpdatedAt);
+  } catch (err) {
+    if (err instanceof ConflictError) return errJson(409, "page was updated by someone else");
+    if (err instanceof NotFoundError) return errJson(404, "page not found");
     return errJson(500, "could not save page");
   }
   return json(200, toResp(publicUrl, page, page.html.length));

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"log"
 	"net"
@@ -16,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Onkarj012/Waymark/internal/render"
 	"github.com/Onkarj012/Waymark/internal/store"
 	"github.com/Onkarj012/Waymark/theme"
 )
@@ -177,47 +177,8 @@ func (s *Server) handleServePage(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, p.HTML)
 		return
 	}
-	io.WriteString(w, renderThemed(p.Title, p.HTML))
+	io.WriteString(w, render.Hosted(p.Title, p.HTML))
 }
-
-// renderThemed wraps body content in a full HTML document that links the house
-// stylesheet. The agent only writes the content that lives inside .page.
-func renderThemed(title, content string) string {
-	var b strings.Builder
-	b.WriteString("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n")
-	b.WriteString("<meta charset=\"utf-8\">\n")
-	b.WriteString("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
-	b.WriteString("<title>")
-	b.WriteString(html.EscapeString(title))
-	b.WriteString("</title>\n")
-	b.WriteString("<link rel=\"stylesheet\" href=\"/theme.css\">\n")
-	b.WriteString(themeInitScript)
-	b.WriteString("</head>\n<body>\n")
-	b.WriteString(themeToggleButton)
-	b.WriteString("<main class=\"page\">\n")
-	b.WriteString(content)
-	b.WriteString("\n<footer class=\"waymark-credit\">\n")
-	b.WriteString("<a href=\"https://github.com/Onkarj012/Waymark\" target=\"_blank\" rel=\"noopener noreferrer\">generated on Waymark</a>\n")
-	b.WriteString("</footer>\n</main>\n")
-	b.WriteString(themeToggleScript)
-	b.WriteString("</body>\n</html>\n")
-	return b.String()
-}
-
-// Light/dark toggle, injected into every themed page. The init script runs in
-// <head> before paint to avoid a flash: it follows the visitor's stored choice,
-// or the system preference on first load. The button (top-right) flips and
-// persists the choice; styling lives in theme.css (.theme-toggle).
-const themeInitScript = `<script>(function(){try{var t=localStorage.getItem("waymark-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
-`
-
-const themeToggleButton = `<button class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
-<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"></path></svg>
-</button>
-`
-
-const themeToggleScript = `<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle"),mq=matchMedia("(prefers-color-scheme: dark)");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});try{if(!localStorage.getItem("waymark-theme"))mq.addEventListener("change",function(e){apply(e.matches?"dark":"light");});}catch(e){}})();</script>
-`
 
 // --- API: requests & responses ---------------------------------------------
 
@@ -230,11 +191,12 @@ type createReq struct {
 }
 
 type updateReq struct {
-	Title   *string `json:"title,omitempty"`
-	Slug    *string `json:"slug,omitempty"`
-	HTML    *string `json:"html,omitempty"`
-	Raw     *bool   `json:"raw,omitempty"`
-	TTLDays *int    `json:"ttl_days,omitempty"` // >0 sets expiry; <=0 clears it
+	Title       *string    `json:"title,omitempty"`
+	Slug        *string    `json:"slug,omitempty"`
+	HTML        *string    `json:"html,omitempty"`
+	Raw         *bool      `json:"raw,omitempty"`
+	TTLDays     *int       `json:"ttl_days,omitempty"` // >0 sets expiry; <=0 clears it
+	IfUpdatedAt *time.Time `json:"if_updated_at,omitempty"`
 }
 
 type pageResp struct {
@@ -380,9 +342,26 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if req.TTLDays != nil {
 		p.ExpiresAt = ttlToExpiry(now, *req.TTLDays)
 	}
+	if !now.After(p.UpdatedAt) {
+		now = p.UpdatedAt.UTC().Add(time.Nanosecond)
+	}
 	p.UpdatedAt = now
 
-	if err := s.store.Save(p); err != nil {
+	var saveErr error
+	if req.IfUpdatedAt != nil {
+		saveErr = s.store.SaveIfUpdatedAt(p, *req.IfUpdatedAt)
+	} else {
+		saveErr = s.store.Save(p)
+	}
+	if errors.Is(saveErr, store.ErrConflict) {
+		s.writeErr(w, http.StatusConflict, "page was updated by someone else")
+		return
+	}
+	if errors.Is(saveErr, store.ErrNotFound) {
+		s.writeErr(w, http.StatusNotFound, "page not found")
+		return
+	}
+	if saveErr != nil {
 		s.writeErr(w, http.StatusInternalServerError, "could not save page")
 		return
 	}

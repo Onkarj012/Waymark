@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual-plan system — build status</title>
+<style>
 /* ===========================================================================
    Waymark — House Theme
    Cold, precise, denotative. A lit field with sparse machined furniture,
@@ -712,3 +719,211 @@ footer {
   .file-impact .impact-kind { text-align: left; }
   .file-impact .impact-note { grid-column: auto; margin-top: 0; }
 }
+</style>
+<script>(function(){try{var t=localStorage.getItem("waymark-theme");if(t==="light")document.documentElement.removeAttribute("data-theme");else if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
+</head>
+<body>
+<div class="reading-progress" aria-hidden="true"></div>
+<button class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"></path></svg>
+</button>
+<main class="page">
+<article class="plan" data-plan-profile="delivery">
+<div class="page-layout">
+  <aside class="section-nav" aria-label="Report sections">
+    <p class="label">Build status</p>
+    <nav>
+      <ul>
+        <li><a href="#summary">Summary</a></li>
+        <li><a href="#change">What changed</a></li>
+        <li><a href="#checks">Checks</a></li>
+        <li><a href="#workstreams">Workstreams</a></li>
+        <li><a href="#artifacts">Artifacts</a></li>
+        <li><a href="#blocked">Blocked</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#next">Next actions</a></li>
+        <li><a href="#questions">Open questions</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="page-content">
+    <header class="plan-identity">
+      <p class="identity-kicker">Delivery profile · Waymark visual-plan system</p>
+      <h1>Visual-plan system — build status</h1>
+      <p class="dek identity-summary">The rendering toolchain is built and green end to end. Skill documents are rewritten but unsynced, and the visual inspection never ran. Nothing is committed and nothing is published.</p>
+      <dl class="identity-register">
+        <div><dt>Date</dt><dd>18 August 2026</dd></div>
+        <div><dt>Branch</dt><dd>feat/visual-plan-system</dd></div>
+        <div><dt>State</dt><dd>Uncommitted working tree</dd></div>
+        <div><dt>Gate</dt><dd>Phase 6 proof incomplete</dd></div>
+      </dl>
+    </header>
+
+    <div class="callout warn">
+      <span class="ico" aria-hidden="true">!</span>
+      <div class="body"><div class="title">Superseded historical snapshot</div><p>Superseded on 18 August 2026. Current status is the review-remediation work on <code>feat/visual-plan-system</code>; this report preserves the evidence from its original reporting point and is not a current readiness claim.</p></div>
+    </div>
+
+    <section id="summary">
+      <h2>Summary</h2>
+      <div class="callout note">
+        <span class="ico" aria-hidden="true">→</span>
+        <div class="body"><div class="title">Where this stands</div><p>Six of seven plan phases are done and independently verified. Phase 6 — the bounded end-to-end proof — is partially complete: the fixture renders and passes structural verification, but no human or machine has yet looked at the rendered pixels.</p></div>
+      </div>
+      <section class="stats" aria-label="Status at a glance">
+        <div class="stat"><div class="label">Automated checks</div><div class="value">8/8</div><div class="sub">Go, Workers, artifact helper</div></div>
+        <div class="stat"><div class="label">Skill copies synced</div><div class="value">0/5</div><div class="sub">Rewrite landed, sync did not</div></div>
+        <div class="stat"><div class="label">Visual evidence</div><div class="value">0</div><div class="sub">Screenshots captured</div></div>
+        <div class="stat"><div class="label">Published pages</div><div class="value">0</div><div class="sub">Draft boundary held</div></div>
+      </section>
+    </section>
+
+    <section id="change">
+      <h2>What changed this session</h2>
+      <div class="change-map" aria-label="State before and after this session">
+        <section class="change-state">
+          <span class="state-label">Before</span>
+          <h3>Toolchain built, unproven</h3>
+          <p>Renderer, theme grammar, preview command, and artifact helper existed and passed unit tests, but no plan artifact had been produced through them by an agent other than their author.</p>
+        </section>
+        <div class="change-direction" aria-label="Changes to">Changes to</div>
+        <section class="change-state after">
+          <span class="state-label">After</span>
+          <h3>Toolchain exercised by a fixture</h3>
+          <p>A representative migration plan was authored, stamped, verified, and rendered through the real CLI. Skill prose was rewritten against the writing-great-skills doctrine but not installed.</p>
+        </section>
+      </div>
+      <p>Two delegated runs did the work, both on gpt-5.6-luna. The implementation run finished cleanly. The doctrine run finished its edits, then lost network before it could synchronize the installed skill copies.</p>
+    </section>
+
+    <section id="checks">
+      <h2>Checks</h2>
+      <div class="table-wrap" role="region" aria-label="Verification results" tabindex="0">
+        <table>
+          <caption>Every check re-run directly rather than taken from the delegated run's claims.</caption>
+          <thead>
+            <tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Detail</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>go test ./...</td><td><span class="badge ok">pass</span></td><td>5 packages</td></tr>
+            <tr><td>go vet ./...</td><td><span class="badge ok">pass</span></td><td>clean</td></tr>
+            <tr><td>Workers vitest</td><td><span class="badge ok">pass</span></td><td>6 files, 69 tests</td></tr>
+            <tr><td>npm run typecheck</td><td><span class="badge ok">pass</span></td><td>source and test configs</td></tr>
+            <tr><td>plan-artifact.mjs verify</td><td><span class="badge ok">pass</span></td><td>fixture metadata accepted</td></tr>
+            <tr><td>plan-artifact.test.mjs</td><td><span class="badge ok">pass</span></td><td>9 of 9 subtests</td></tr>
+            <tr><td>Component class audit</td><td><span class="badge ok">pass</span></td><td>58 of 58 classes exist in theme.css</td></tr>
+            <tr><td>git diff --check</td><td><span class="badge ok">pass</span></td><td>no whitespace damage</td></tr>
+            <tr><td>Installed skill copies</td><td><span class="badge bad">unsynced</span></td><td>5 destinations differ from source</td></tr>
+            <tr><td>Desktop / mobile / print</td><td><span class="badge bad">not run</span></td><td>browser never connected</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">The eight passing checks were executed in this session against the files on disk, not reported by the agents that wrote them.</p>
+    </section>
+
+    <section id="workstreams">
+      <h2>Workstreams</h2>
+      <ol class="phase-roadmap" aria-label="Plan phases">
+        <li data-status="complete"><span class="phase-index">Phase 00</span><span class="phase-name">Integration boundaries</span><span class="status-text">Complete</span></li>
+        <li data-status="complete"><span class="phase-index">Phase 01</span><span class="phase-name">Shared renderer, dark-first</span><span class="status-text">Complete</span></li>
+        <li data-status="complete"><span class="phase-index">Phase 02</span><span class="phase-name">Component grammar</span><span class="status-text">Complete</span></li>
+        <li data-status="complete"><span class="phase-index">Phase 03</span><span class="phase-name">Offline preview</span><span class="status-text">Complete</span></li>
+        <li data-status="complete"><span class="phase-index">Phase 04</span><span class="phase-name">Artifact versioning</span><span class="status-text">Complete</span></li>
+        <li data-status="active"><span class="phase-index">Phase 05</span><span class="phase-name">Teach agents</span><span class="status-text">Rewrite unsynced</span></li>
+        <li data-status="active"><span class="phase-index">Phase 06</span><span class="phase-name">End-to-end proof</span><span class="status-text">Partial</span></li>
+      </ol>
+      <div class="phase-detail">
+        <h3>Phase 06 — where it stopped</h3>
+        <p class="phase-outcome"><strong>Outcome required:</strong> a fixture that renders correctly at desktop, mobile, and print, inspected once, with at most one repair, ending at draft.</p>
+        <ul>
+          <li>Steps 1 to 3 are done: fixture authored, stamped, verified, and rendered.</li>
+          <li>Step 4 did not run: the inspection agent required Chrome, Chrome control was not connected, and the session then lost DNS.</li>
+          <li>Steps 5 and 6 are untouched, because there is no defect list to repair against.</li>
+        </ul>
+      </div>
+      <h3>Dependencies</h3>
+      <ol class="dependency-flow">
+        <li><span class="dependency-key">VIS</span><div class="dependency-body"><span class="dependency-name">Visual inspection evidence</span><span class="dependency-note">Required before the theme work can be called proven at any viewport.</span></div></li>
+        <li><span class="dependency-key">REV</span><div class="dependency-body"><span class="dependency-name">Doctrine review of the skill rewrite</span><span class="dependency-note">Required before the four rewritten files overwrite the installed copies.</span></div></li>
+        <li><span class="dependency-key">SYN</span><div class="dependency-body"><span class="dependency-name">Byte-identical skill sync</span><span class="dependency-note">Required before Phase 5 can close; depends on REV.</span></div></li>
+      </ol>
+    </section>
+
+    <section id="artifacts">
+      <h2>Artifacts on disk</h2>
+      <dl class="facts">
+        <dt>Fixture Markdown</dt><dd>docs/plans/fixtures/example-checkout-migration.md</dd>
+        <dt>Fixture body</dt><dd>docs/plans/fixtures/example-checkout-migration.waymark.html</dd>
+        <dt>Fixture metadata</dt><dd>version 2, status draft, profile migration</dd>
+        <dt>Fixture preview</dt><dd>docs/plans/fixtures/example-checkout-migration.html</dd>
+        <dt>Rewritten skills</dt><dd>4 files in the isolated SKILLS worktree</dd>
+        <dt>Page identifiers</dt><dd>None — page_id and url are null</dd>
+      </dl>
+      <div class="callout ok">
+        <span class="ico" aria-hidden="true">✓</span>
+        <div class="body"><div class="title">Isolation held</div><p>The protected SKILLS checkout still shows exactly its five pre-existing bespoke-ui and design-directions entries. No delegated run staged, committed, reverted, or cleaned anything.</p></div>
+      </div>
+    </section>
+
+    <section id="blocked">
+      <h2>Blocked</h2>
+      <ul class="verification-board">
+        <li class="verification-item" data-status="failed"><span class="status-text">Failed</span><div class="verification-body"><span class="verification-title">Browser inspection</span><span class="verification-note">The agent held to the explicitly named browser, found Chrome control unavailable, and correctly refused to substitute another surface. The session then lost DNS resolution to the model endpoint.</span></div></li>
+        <li class="verification-item" data-status="pending"><span class="status-text">Pending</span><div class="verification-body"><span class="verification-title">Skill installation</span><span class="verification-note">All five destinations still hold the pre-rewrite text. The rewrite is confined to the worktree.</span></div></li>
+        <li class="verification-item" data-status="pending"><span class="status-text">Pending</span><div class="verification-body"><span class="verification-title">Doctrine outcome</span><span class="verification-note">The four skill files grew from 740 to 765 lines. Every named guardrail survives, but the rewrite moved against the density the doctrine asks for.</span></div></li>
+      </ul>
+      <div class="callout warn">
+        <span class="ico" aria-hidden="true">!</span>
+        <div class="body"><div class="title">Growth is the signal worth reading</div><p>A pruning-and-density pass that ends longer than it started has usually rearranged prose rather than removed it. The guardrail audit passed; the density goal did not.</p></div>
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2>Risks</h2>
+      <ul class="risk-list">
+        <li class="risk-item" data-severity="medium"><span class="status-text">Medium risk</span><div class="risk-body"><span class="risk-title">Unproven visual layer</span><span class="risk-note">Every theme claim rests on unit tests and a class audit. No viewport has been observed, so mobile overflow and print breakage remain possible.</span></div></li>
+        <li class="risk-item" data-severity="medium"><span class="status-text">Medium risk</span><div class="risk-body"><span class="risk-title">Large uncommitted surface</span><span class="risk-note">Two repositories hold substantial unversioned work. A lost working tree costs the whole session.</span></div></li>
+        <li class="risk-item" data-severity="low"><span class="status-text">Low risk</span><div class="risk-body"><span class="risk-title">Doctrine regression</span><span class="risk-note">The rewrite is reviewable and reversible, and it is confined to a worktree that nothing reads from yet.</span></div></li>
+      </ul>
+    </section>
+
+    <section id="next">
+      <h2>Next actions</h2>
+      <ol>
+        <li>Review the four rewritten skill files against the doctrine and prune what the rewrite added, before any copy is installed.</li>
+        <li>Re-run the visual inspection without pinning it to Chrome, so the runtime can pick the in-app browser.</li>
+        <li>Apply at most one repair pass for any concrete defect the inspection surfaces.</li>
+        <li>Synchronize the five skill destinations once the rewrite is accepted.</li>
+        <li>Decide what gets committed, and on which branch.</li>
+      </ol>
+      <div class="callout note">
+        <span class="ico" aria-hidden="true">→</span>
+        <div class="body"><div class="title">Each of these needs a separate go-ahead</div><p>Reviewing and inspecting are read-only. Installing skill copies, committing, and publishing are not, and none of them are authorized by this report.</p></div>
+      </div>
+    </section>
+
+    <section id="questions">
+      <h2>Open questions</h2>
+      <aside class="open-questions" aria-labelledby="open-questions-title">
+        <span class="question-count">3 open questions</span>
+        <h3 id="open-questions-title">Yours to settle</h3>
+        <ol>
+          <li>Should the doctrine rewrite be pruned in place, or reverted and re-attempted on a higher-taste model?</li>
+          <li>Does the fixture belong in the repository long term, or is it throwaway proof to delete once the visual check passes?</li>
+          <li>Should this branch be committed before the visual inspection runs, given how much uncommitted work is exposed?</li>
+        </ol>
+      </aside>
+    </section>
+  </div>
+</div>
+</article>
+
+<footer class="waymark-credit">
+<a href="https://github.com/Onkarj012/Waymark" target="_blank" rel="noopener noreferrer">generated on Waymark</a>
+</footer>
+</main>
+<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});})();</script>
+<script>(function(){var links=[].slice.call(document.querySelectorAll(".section-nav a[href^='#']")),bar=document.querySelector(".reading-progress");if(!links.length&&!bar)return;var sections=links.map(function(a){return document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));}),list=document.querySelector(".section-nav ul"),current=-1,ticking=false;function paint(i){if(i===current)return;current=i;links.forEach(function(a,n){a.classList.toggle("is-active",n===i);a.classList.toggle("is-read",n<i);if(n===i)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");});if(list)list.style.setProperty("--spine",(links.length>1?i/(links.length-1)*100:100)+"%");}function pick(){var line=innerHeight*.28,best=0,i,s;for(i=0;i<sections.length;i++){s=sections[i];if(s&&s.getBoundingClientRect().top<=line)best=i;}if(sections.length&&innerHeight+scrollY>=document.body.scrollHeight-4)best=sections.length-1;if(links.length)paint(best);if(bar){var max=document.documentElement.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,scrollY/max*100):0)+"%";}}function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){pick();ticking=false;});}addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);pick();})();</script>
+</body>
+</html>

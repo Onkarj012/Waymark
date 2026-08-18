@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Waymark flag logo">
+  <!-- a dotted trail bouncing up a hill to a planted pennant:
+       the way, then the mark -->
+  <circle cx="10" cy="53" r="3" fill="#2c2f38"/>
+  <circle cx="20" cy="48" r="3" fill="#2c2f38"/>
+  <circle cx="29" cy="41" r="3" fill="#2c2f38"/>
+  <circle cx="37" cy="34" r="3" fill="#2c2f38"/>
+  <path d="M39 53q8-7 16 0" stroke="#2c2f38" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <rect x="44.75" y="15" width="4.5" height="37" rx="2.25" fill="#2c2f38"/>
+  <path d="M49.25 16.5 60 19.5 55.5 22 60 24.5 49.25 27.5z"
+        fill="#1e7c6c" stroke="#1e7c6c" stroke-width="2" stroke-linejoin="round"/>
+</svg>

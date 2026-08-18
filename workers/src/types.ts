@@ -112,6 +112,13 @@ export class NotFoundError extends Error {
   }
 }
 
+export class ConflictError extends Error {
+  constructor(message = "page update conflict") {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
 /** Discriminated result of looking up a device authorization grant by user
  * code or device code — mirrors the Go store's ErrGrantNotFound/ErrGrantExpired
  * sentinel errors. */

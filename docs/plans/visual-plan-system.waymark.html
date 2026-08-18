@@ -1,0 +1,157 @@
+<article class="plan" data-plan-profile="systems">
+<div class="page-layout">
+  <aside class="section-nav" aria-label="Plan sections">
+    <p class="label">Visual plan</p>
+    <nav>
+      <ul>
+        <li><a href="#orientation">Orientation</a></li>
+        <li><a href="#change">Change map</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#controls">Controls</a></li>
+        <li><a href="#acceptance">Acceptance</a></li>
+        <li><a href="#risks">Risks</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="page-content">
+    <header class="plan-identity">
+      <p class="identity-kicker">SYSTEMS PROFILE · IMPLEMENTATION PLAN</p>
+      <h1>Visual-first agent planning system</h1>
+      <p class="dek identity-summary">Turn settled decisions into plans people can understand at a glance—without letting plan creation become a project of its own.</p>
+      <dl class="identity-register">
+        <div>
+          <dt>Status</dt><dd>Draft · Awaiting user approval</dd>
+        </div>
+        <div>
+          <dt>Surfaces</dt><dd>Waymark + shared agent skills</dd>
+        </div>
+        <div>
+          <dt>Publication</dt><dd>Permanent after approval</dd>
+        </div>
+      </dl>
+    </header>
+
+    <div class="callout warn">
+      <span class="ico" aria-hidden="true">!</span>
+      <div class="body">
+        <div class="title">Approval is the boundary</div>
+        <p>This draft may be inspected locally. It must not be published, handed to an executor, implemented, committed, or filed as an issue or pull request until the user explicitly approves the named downstream actions.</p>
+      </div>
+    </div>
+
+    <section class="stats" aria-label="Plan summary">
+      <div class="stat"><div class="label">Change surfaces</div><div class="value">2</div><div class="sub">Waymark + SKILLS</div></div>
+      <div class="stat"><div class="label">Implementation phases</div><div class="value">6</div><div class="sub">Ordered and independently checked</div></div>
+      <div class="stat"><div class="label">Repair budget</div><div class="value">1</div><div class="sub">Then stop and report</div></div>
+      <div class="stat"><div class="label">Material questions</div><div class="value">0</div><div class="sub">Design frontier is closed</div></div>
+    </section>
+
+    <section id="orientation">
+      <h2>Orientation</h2>
+      <div class="callout note">
+        <span class="ico" aria-hidden="true">→</span>
+        <div class="body"><div class="title">Destination</div><p>Every explicit planning run produces canonical Markdown, synchronized visual HTML, metadata, and one local preview. The first screen explains destination, change, sequence, primary risk, and completion proof.</p></div>
+      </div>
+      <dl class="facts">
+        <dt>Default appearance</dt><dd>Dark first; persistent light-mode choice</dd>
+        <dt>Identity model</dt><dd>One Waymark system, five controlled plan profiles</dd>
+        <dt>Visual policy</dt><dd>Visualize meaningful relationships; never chase a quota</dd>
+        <dt>Quality ceiling</dt><dd>Compose once, validate once, inspect once, repair at most once</dd>
+      </dl>
+    </section>
+
+    <section id="change">
+      <h2>Change map</h2>
+      <figure aria-labelledby="change-caption">
+        <svg viewBox="0 0 900 280" role="img" aria-label="Transition from text-heavy plans to visual, approval-gated plans" aria-describedby="change-desc">
+          <desc id="change-desc">Three connected stages show the current text-heavy plan, the new visual compiler, and a human-approved executable plan.</desc>
+          <defs><marker id="arrow-change" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" style="fill: var(--accent)"></path></marker></defs>
+          <rect x="24" y="54" width="230" height="150" rx="4" style="fill: var(--surface-2); stroke: var(--border-strong)"></rect>
+          <text x="48" y="88" style="fill: var(--text-faint); font-family: var(--font-mono)" font-size="16">CURRENT</text>
+          <text x="48" y="125" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Text-heavy plan</text>
+          <text x="48" y="157" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Long read before orientation</text>
+          <text x="48" y="181" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Generic link-only handoff</text>
+          <line x1="274" y1="129" x2="326" y2="129" style="stroke: var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
+          <rect x="342" y="30" width="240" height="198" rx="4" style="fill: var(--accent-soft); stroke: var(--accent)"></rect>
+          <text x="366" y="66" style="fill: var(--accent-text); font-family: var(--font-mono)" font-size="16">VISUAL COMPILER</text>
+          <text x="366" y="103" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Plan-shaped view</text>
+          <text x="366" y="137" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Identity + visual grammar</text>
+          <text x="366" y="163" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Checksums + local preview</text>
+          <text x="366" y="189" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">One bounded quality pass</text>
+          <line x1="602" y1="129" x2="654" y2="129" style="stroke: var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
+          <rect x="670" y="54" width="206" height="150" rx="4" style="fill: var(--surface-2); stroke: var(--border-strong)"></rect>
+          <text x="694" y="88" style="fill: var(--ok); font-family: var(--font-mono)" font-size="16">DESTINATION</text>
+          <text x="694" y="125" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Human approval</text>
+          <text x="694" y="157" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Understand first</text>
+          <text x="694" y="181" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Then publish + hand off</text>
+        </svg>
+        <figcaption id="change-caption">The change is not Markdown with decoration. It is a bounded compiler from settled decisions into a visual review surface and an exact executor specification.</figcaption>
+      </figure>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <div class="table-wrap" role="region" aria-label="Implementation phases" tabindex="0">
+        <table>
+          <caption>Each phase produces one checkable capability</caption>
+          <thead><tr><th scope="col">Phase</th><th scope="col">Outcome</th><th scope="col">Proof</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">0 · Base</th><td>Stack on <code>2d61439</code>; isolate dirty SKILLS work</td><td>Clean implementation worktrees</td></tr>
+            <tr><th scope="row">1 · Render</th><td>Server and CLI share a standard-library renderer</td><td>Go/Worker parity; no SQLite in CLI deps</td></tr>
+            <tr><th scope="row">2 · Visuals</th><td>Five profiles and ten component families</td><td>Contract, contrast, responsive, and print tests</td></tr>
+            <tr><th scope="row">3 · Preview</th><td>Offline standalone preview without auth</td><td>Safety, overwrite, stdin, and SVG tests</td></tr>
+            <tr><th scope="row">4 · Verify</th><td>Versioned checksummed plan artifacts</td><td>Stamp and verify tests</td></tr>
+            <tr><th scope="row">5–6 · Teach</th><td>Shared bounded approval workflow</td><td>Byte-identical skill copies and one local proof</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="controls">
+      <h2>Controls</h2>
+      <section class="stats" aria-label="Bounded plan creation loop">
+        <div class="stat"><div class="label">1 · Compose</div><div class="value">Once</div><div class="sub">Markdown and visual body</div></div>
+        <div class="stat"><div class="label">2 · Validate</div><div class="value">Once</div><div class="sub">Safety, structure, paths, anchors</div></div>
+        <div class="stat"><div class="label">3 · Inspect</div><div class="value">Once</div><div class="sub">Desktop, mobile, and print</div></div>
+        <div class="stat"><div class="label">4 · Repair</div><div class="value">≤ 1</div><div class="sub">Only a concrete defect</div></div>
+      </section>
+      <div class="callout ok"><span class="ico" aria-hidden="true">✓</span><div class="body"><div class="title">Fallback beats perfection</div><p>If a graph is difficult, use the documented table, cards, roadmap, or structured list. Lack of decoration is not a failed gate.</p></div></div>
+      <div class="callout warn"><span class="ico" aria-hidden="true">■</span><div class="body"><div class="title">Nothing crosses the approval gate early</div><p>No public page, executor handoff, branch, commit, issue, pull request, or implementation begins while status is <strong>Draft</strong>.</p></div></div>
+    </section>
+
+    <section id="acceptance">
+      <h2>Acceptance dashboard</h2>
+      <div class="table-wrap" role="region" aria-label="Acceptance criteria" tabindex="0">
+        <table>
+          <caption>Completion requires observable behavior, not subjective polish</caption>
+          <thead><tr><th scope="col">Capability</th><th scope="col">Required evidence</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Dark-first, light-capable</th><td>First visit is dark; saved light survives reload</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Plan identity</th><td>Five profiles work in both themes and print</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Visual understanding</th><td>First screen answers destination, change, sequence, risk, proof</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Approval safety</th><td>No downstream action occurs while status is Draft</td><td><span class="badge warn">Awaiting approval</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2>Risks</h2>
+      <div class="table-wrap" role="region" aria-label="Principal risks and mitigations" tabindex="0">
+        <table>
+          <caption>The risks most likely to undermine the destination</caption>
+          <thead><tr><th scope="col">Risk</th><th scope="col">Signal</th><th scope="col">Mitigation</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Theme branch dependency</th><td><span class="badge warn">Watch</span></td><td>Stack explicitly on <code>2d61439</code></td></tr>
+            <tr><th scope="row">Planning becomes design theatre</th><td><span class="badge warn">Watch</span></td><td>No visual quota; one repair maximum</td></tr>
+            <tr><th scope="row">Active HTML content</th><td><span class="badge bad">Guard</span></td><td>Reject scripts, styles, full-document tags, and raw mode</td></tr>
+            <tr><th scope="row">Skill copies drift</th><td><span class="badge warn">Watch</span></td><td>Reconcile sources and require empty recursive diffs</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout ok"><span class="ico" aria-hidden="true">✓</span><div class="body"><div class="title">Ready for approval</div><p>There are no material open design questions. Publication and handoff remain locked until explicit user approval.</p></div></div>
+    </section>
+  </div>
+</div>
+</article>

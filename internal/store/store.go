@@ -17,6 +17,10 @@ import (
 // ErrNotFound is returned when a page does not exist.
 var ErrNotFound = errors.New("page not found")
 
+// ErrConflict is returned when a conditional page update has a stale
+// expected updated_at value.
+var ErrConflict = errors.New("page update conflict")
+
 // Page is a stored page. For themed pages, HTML holds the body content that the
 // server wraps in the house theme; for raw pages, HTML is a complete document
 // served verbatim.
@@ -225,6 +229,35 @@ func (s *Store) Save(p *Page) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// SaveIfUpdatedAt overwrites an existing page only when its updated_at still
+// matches expected. The comparison and write are one SQLite UPDATE statement,
+// so a concurrent writer cannot pass a separate read check and then be
+// overwritten. It returns ErrNotFound when the page is absent and ErrConflict
+// when the page exists with a different updated_at value.
+func (s *Store) SaveIfUpdatedAt(p *Page, expected time.Time) error {
+	res, err := s.db.Exec(
+		`UPDATE pages SET title = ?, slug = ?, html = ?, raw = ?, updated_at = ?, expires_at = ?
+		 WHERE id = ? AND updated_at = ?`,
+		p.Title, p.Slug, p.HTML, boolToInt(p.Raw),
+		p.UpdatedAt.UTC().Format(rfc), nullTime(p.ExpiresAt), p.ID,
+		expected.UTC().Format(rfc),
+	)
+	if err != nil {
+		return fmt.Errorf("save page conditionally: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		return nil
+	}
+
+	var exists int
+	if err := s.db.QueryRow(`SELECT 1 FROM pages WHERE id = ?`, p.ID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return fmt.Errorf("check page after conditional save: %w", err)
+	}
+	return ErrConflict
 }
 
 // Delete removes a page. Returns ErrNotFound if it did not exist.

@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -49,7 +50,7 @@ func TestCreateAndServeThemedPage(t *testing.T) {
 	if !bytes.Contains(page, []byte("<title>Status &lt;check&gt;</title>")) {
 		t.Fatalf("title was not escaped: %s", page)
 	}
-	if !bytes.Contains(page, []byte("<script>window.demo=true</script>")) {
+	if !bytes.Contains(page, []byte("<script>window.demo=true</script><p>Hello</p>")) {
 		t.Fatalf("publisher HTML contract changed: %s", page)
 	}
 	credit := `<footer class="waymark-credit">
@@ -58,14 +59,76 @@ func TestCreateAndServeThemedPage(t *testing.T) {
 	if !bytes.Contains(page, []byte(credit)) {
 		t.Fatalf("generated credit is missing or unsafe: %s", page)
 	}
-	if bytes.Index(page, []byte(credit)) < bytes.Index(page, []byte("<script>window.demo=true</script>")) {
+	if bytes.Index(page, []byte(credit)) < bytes.Index(page, []byte("<script>window.demo=true</script><p>Hello</p>")) {
 		t.Fatalf("generated credit appeared before publisher content: %s", page)
+	}
+	if !bytes.Contains(page, []byte(`<html lang="en" data-theme="dark">`)) {
+		t.Fatalf("hosted page is not dark-first: %s", page)
+	}
+	if !bytes.Contains(page, []byte(`<link rel="stylesheet" href="/theme.css">`)) {
+		t.Fatalf("hosted page did not link /theme.css: %s", page)
 	}
 	if got := pageResp.Header.Get("Referrer-Policy"); got != "no-referrer" {
 		t.Fatalf("Referrer-Policy = %q", got)
 	}
 	if got := pageResp.Header.Get("X-Content-Type-Options"); got != "nosniff" {
 		t.Fatalf("X-Content-Type-Options = %q", got)
+	}
+}
+
+func TestUpdateHonorsIfUpdatedAtAndReturnsAuthoritativeMetadata(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "pages.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { st.Close() })
+
+	h := newDeviceTestServer(t, st)
+	token := seedDeviceToken(t, st)
+	fixed := time.Now().UTC()
+	h.now = func() time.Time { return fixed }
+	createdResponse := authenticatedRequest(t, h, http.MethodPost, "control.localhost", "/api/pages", token, strings.NewReader(`{"title":"Original","html":"<p>x</p>"}`))
+	if createdResponse.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, body = %s", createdResponse.Code, createdResponse.Body.String())
+	}
+	var created struct {
+		ID        string    `json:"id"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}
+	if err := json.NewDecoder(createdResponse.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+
+	firstUpdate := fmt.Sprintf(`{"title":"Fresh","if_updated_at":%q}`, created.UpdatedAt.Format(time.RFC3339Nano))
+	updatedResponse := authenticatedRequest(t, h, http.MethodPut, "control.localhost", "/api/pages/"+created.ID, token, strings.NewReader(firstUpdate))
+	if updatedResponse.Code != http.StatusOK {
+		t.Fatalf("conditional update status = %d, body = %s", updatedResponse.Code, updatedResponse.Body.String())
+	}
+	var updated struct {
+		Title     string    `json:"title"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}
+	if err := json.NewDecoder(updatedResponse.Body).Decode(&updated); err != nil {
+		t.Fatal(err)
+	}
+	if updated.Title != "Fresh" || !updated.UpdatedAt.Equal(created.UpdatedAt.Add(time.Nanosecond)) {
+		t.Fatalf("conditional response = %#v, want fresh authoritative metadata", updated)
+	}
+
+	stale := fmt.Sprintf(`{"title":"Stale","if_updated_at":%q}`, created.UpdatedAt.Format(time.RFC3339Nano))
+	conflict := authenticatedRequest(t, h, http.MethodPut, "control.localhost", "/api/pages/"+created.ID, token, strings.NewReader(stale))
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("stale update status = %d, body = %s", conflict.Code, conflict.Body.String())
+	}
+	meta := authenticatedRequest(t, h, http.MethodGet, "control.localhost", "/api/pages/"+created.ID, token, nil)
+	var got struct {
+		Title string `json:"title"`
+	}
+	if err := json.NewDecoder(meta.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != "Fresh" {
+		t.Fatalf("conflict changed stored title to %q", got.Title)
 	}
 }
 

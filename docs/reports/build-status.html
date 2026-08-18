@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual-plan system — build status</title>
+<style>
+:root{
+  --bg:#0a0b0d; --surface:#121417; --surface-2:#171a1e; --line:#23272c;
+  --ink:#e7eaec; --ink-dim:#a3abb2; --ink-faint:#6d767e;
+  --accent:#e0a340; --pass:#5ec27a; --fail:#e2685f; --hold:#d9a441; --idle:#6d767e;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+}
+@media (prefers-color-scheme:light){
+  :root{--bg:#fbfbfa;--surface:#fff;--surface-2:#f4f5f6;--line:#e2e4e7;
+    --ink:#16191c;--ink-dim:#565e66;--ink-faint:#858d95;
+    --accent:#a96f12;--pass:#2f7d4a;--fail:#b3392f;--hold:#8a6512;--idle:#858d95;}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:56px 32px 96px}
+a{color:inherit}
+
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.eyebrow::before{content:"";width:26px;height:2px;background:var(--accent);flex:none}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.1;letter-spacing:-.022em;margin:0 0 16px;font-weight:640}
+.stand{font-size:clamp(17px,1.7vw,20px);line-height:1.5;color:var(--ink-dim);max-width:62ch;margin:0 0 30px}
+.stand b{color:var(--ink);font-weight:600}
+.meta{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface);margin:0}
+.meta div{flex:1 1 190px;padding:13px 17px;border-right:1px solid var(--line)}
+.meta div:last-child{border-right:0}
+.meta dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 5px}
+.meta dd{margin:0;font-size:14.5px;font-family:var(--mono);color:var(--ink)}
+
+.score{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:40px 0 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:var(--tone,var(--idle))}
+.card .k{color:var(--ink-faint);margin:0 0 10px;text-transform:uppercase;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em}
+.card .v{font-size:34px;line-height:1;font-weight:660;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--tone,var(--ink))}
+.card .n{font-size:13px;color:var(--ink-dim);margin:8px 0 0;line-height:1.4}
+.t-pass{--tone:var(--pass)} .t-fail{--tone:var(--fail)} .t-hold{--tone:var(--hold)} .t-idle{--tone:var(--idle)}
+
+section{margin:52px 0 0;scroll-margin-top:24px}
+h2{font-size:13px;font-family:var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);
+  margin:0 0 18px;padding-bottom:11px;border-bottom:1px solid var(--line);font-weight:500}
+h3{font-size:17px;margin:0 0 8px;letter-spacing:-.01em;font-weight:600}
+p{margin:0 0 14px;color:var(--ink-dim);max-width:74ch}
+p strong,li strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--ink)}
+
+.note{border:1px solid var(--line);border-left:3px solid var(--tone,var(--accent));
+  background:var(--surface);border-radius:0 9px 9px 0;padding:16px 20px;margin:0 0 22px}
+.note h3{color:var(--tone,var(--accent));font-size:14px;font-family:var(--mono);
+  letter-spacing:.05em;text-transform:uppercase;font-weight:500;margin-bottom:7px}
+.note p:last-child{margin-bottom:0}
+.note.bad{--tone:var(--fail)} .note.warn{--tone:var(--hold)} .note.ok{--tone:var(--pass)}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+caption{text-align:left;color:var(--ink-faint);font-size:13px;padding-bottom:11px}
+th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-faint);font-weight:500;padding:0 14px 9px 0;border-bottom:1px solid var(--line)}
+td{padding:11px 14px 11px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-dim)}
+td:first-child{font-family:var(--mono);font-size:13.5px;color:var(--ink);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  padding:2.5px 9px;border-radius:100px;border:1px solid;white-space:nowrap}
+.p-pass{color:var(--pass);border-color:color-mix(in srgb,var(--pass) 40%,transparent);background:color-mix(in srgb,var(--pass) 11%,transparent)}
+.p-fail{color:var(--fail);border-color:color-mix(in srgb,var(--fail) 40%,transparent);background:color-mix(in srgb,var(--fail) 11%,transparent)}
+.p-hold{color:var(--hold);border-color:color-mix(in srgb,var(--hold) 40%,transparent);background:color-mix(in srgb,var(--hold) 11%,transparent)}
+.p-idle{color:var(--ink-faint);border-color:var(--line);background:var(--surface-2)}
+
+.rail{list-style:none;margin:0;padding:0;display:grid;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.rail li{background:var(--surface);display:grid;grid-template-columns:76px 1fr auto;gap:16px;
+  align-items:center;padding:13px 17px}
+.rail .ix{font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:.06em}
+.rail .nm{font-size:15px;color:var(--ink)}
+.rail li[data-s="done"] .ix{color:var(--pass)}
+.rail li[data-s="now"]{background:var(--surface-2)}
+.rail li[data-s="now"] .ix{color:var(--hold)}
+
+.items{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.items li{background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:14px 17px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start}
+.items .bd{min-width:0}
+.items .ti{display:block;font-size:15px;color:var(--ink);font-weight:560;margin-bottom:3px}
+.items .no{display:block;font-size:14px;color:var(--ink-dim);line-height:1.5}
+
+ol.steps{counter-reset:s;list-style:none;margin:0;padding:0;display:grid;gap:11px}
+ol.steps li{counter-increment:s;padding-left:40px;position:relative;color:var(--ink-dim);max-width:78ch}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:26px;height:26px;
+  display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:var(--surface);
+  font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;color:var(--ink-faint);display:flex;gap:14px;flex-wrap:wrap}
+
+@media (max-width:900px){ .score{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:640px){
+  .wrap{padding:36px 20px 64px}
+  .score{grid-template-columns:1fr}
+  .meta div{flex-basis:100%;border-right:0;border-bottom:1px solid var(--line)}
+  .meta div:last-child{border-bottom:0}
+  .rail li{grid-template-columns:1fr auto;gap:6px 12px}
+  .rail .ix{grid-column:1/-1}
+  table{font-size:13.5px} td,th{padding-right:10px}
+}
+@media print{
+  :root{--bg:#fff;--surface:#fff;--surface-2:#fff;--line:#c8ccd0;
+    --ink:#000;--ink-dim:#333;--ink-faint:#666;--accent:#7a5210;
+    --pass:#1d6b38;--fail:#98261d;--hold:#6b4c0a}
+  .wrap{padding:0;max-width:none}
+  section,.card,.items li,.rail li,.note{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Waymark · feat/visual-plan-system · 18 Aug 2026</p>
+<h1>Visual-plan system — build status</h1>
+<p class="stand">The toolchain is built and every automated check passes. But the theme it depends on <b>was never deployed</b>, so the first page published through it rendered with no styling at all. Nothing is committed.</p>
+
+<dl class="meta">
+  <div><dt>Branch</dt><dd>feat/visual-plan-system</dd></div>
+  <div><dt>Base</dt><dd>2d61439</dd></div>
+  <div><dt>Tree</dt><dd>uncommitted</dd></div>
+  <div><dt>Gate</dt><dd>phase 6 partial</dd></div>
+</dl>
+
+<div class="score">
+  <div class="card t-pass"><p class="k">Automated checks</p><div class="v">8/8</div><p class="n">Go, Workers, artifact helper</p></div>
+  <div class="card t-fail"><p class="k">Theme deployed</p><div class="v">No</div><p class="n">Live worker runs old CSS</p></div>
+  <div class="card t-hold"><p class="k">Skill copies synced</p><div class="v">0/5</div><p class="n">Rewrite landed, sync did not</p></div>
+  <div class="card t-idle"><p class="k">Committed</p><div class="v">0</div><p class="n">Two dirty working trees</p></div>
+</div>
+
+<section id="break">
+  <h2>The failure worth reading</h2>
+  <div class="note bad">
+    <h3>Published page had zero component styling</h3>
+    <p>The report was published as <strong>themed body-only HTML</strong>, which means the server supplies the stylesheet. The live worker at <code>waymark-api.leo4.dev</code> was built before the visual-plan components existed, so all eleven of them — <code>plan-identity</code>, <code>phase-roadmap</code>, <code>system-flow</code>, <code>dependency-flow</code>, <code>change-map</code>, <code>identity-register</code>, <code>facts</code>, <code>risk-list</code>, <code>verification-board</code>, <code>decision-grid</code>, <code>open-questions</code> — matched no rule and fell back to browser defaults.</p>
+    <p>The <strong>+226 lines</strong> of component CSS in <code>theme/theme.css</code> are uncommitted and undeployed. Workers inline the theme at build time, so the fix is a build and deploy, not a markup change.</p>
+  </div>
+  <div class="note warn">
+    <h3>Two checks that passed and still missed it</h3>
+    <p>A class audit confirmed all 58 class names exist in the local <code>theme.css</code>, and structural validation confirmed the body was well formed. Neither asks the only question that mattered: <strong>does the server that will render this actually have the stylesheet?</strong> Passing checks are not the same as a looked-at page.</p>
+  </div>
+</section>
+
+<section id="checks">
+  <h2>Checks</h2>
+  <table>
+    <caption>Re-run directly against the files on disk, not taken from the delegated runs' claims.</caption>
+    <thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>go test ./...</td><td><span class="pill p-pass">pass</span></td><td>5 packages</td></tr>
+      <tr><td>go vet ./...</td><td><span class="pill p-pass">pass</span></td><td>clean</td></tr>
+      <tr><td>workers vitest</td><td><span class="pill p-pass">pass</span></td><td>6 files, 69 tests</td></tr>
+      <tr><td>npm run typecheck</td><td><span class="pill p-pass">pass</span></td><td>source and test configs</td></tr>
+      <tr><td>plan-artifact verify</td><td><span class="pill p-pass">pass</span></td><td>fixture metadata accepted</td></tr>
+      <tr><td>plan-artifact tests</td><td><span class="pill p-pass">pass</span></td><td>9 of 9 subtests</td></tr>
+      <tr><td>class audit</td><td><span class="pill p-pass">pass</span></td><td>58/58 exist locally — did not catch the deploy gap</td></tr>
+      <tr><td>git diff --check</td><td><span class="pill p-pass">pass</span></td><td>no whitespace damage</td></tr>
+      <tr><td>theme deployed</td><td><span class="pill p-fail">fail</span></td><td>0 of 11 components present in live CSS</td></tr>
+      <tr><td>skill copies synced</td><td><span class="pill p-hold">pending</span></td><td>5 destinations differ from source</td></tr>
+      <tr><td>mobile / print</td><td><span class="pill p-idle">not run</span></td><td>only desktop has been observed</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="phases">
+  <h2>Phases</h2>
+  <ol class="rail">
+    <li data-s="done"><span class="ix">PHASE 00</span><span class="nm">Integration boundaries</span><span class="pill p-pass">complete</span></li>
+    <li data-s="done"><span class="ix">PHASE 01</span><span class="nm">Shared renderer, dark-first</span><span class="pill p-pass">complete</span></li>
+    <li data-s="done"><span class="ix">PHASE 02</span><span class="nm">Component grammar</span><span class="pill p-pass">complete</span></li>
+    <li data-s="done"><span class="ix">PHASE 03</span><span class="nm">Offline preview</span><span class="pill p-pass">complete</span></li>
+    <li data-s="done"><span class="ix">PHASE 04</span><span class="nm">Artifact versioning</span><span class="pill p-pass">complete</span></li>
+    <li data-s="now"><span class="ix">PHASE 05</span><span class="nm">Teach agents</span><span class="pill p-hold">unsynced</span></li>
+    <li data-s="now"><span class="ix">PHASE 06</span><span class="nm">End-to-end proof</span><span class="pill p-hold">partial</span></li>
+  </ol>
+  <p style="margin-top:18px">Phase 6 steps 1–3 are done: the fixture at <code>docs/plans/fixtures/example-checkout-migration.*</code> was authored, stamped, verified, and rendered. Step 4 — inspect desktop, mobile, print — has produced desktop evidence only, and that evidence is what exposed the deploy gap.</p>
+</section>
+
+<section id="open">
+  <h2>Open</h2>
+  <ul class="items">
+    <li><span class="pill p-fail">blocking</span><div class="bd"><span class="ti">Theme is undeployed</span><span class="no">Any page published as themed body-only HTML renders unstyled until <code>theme.css</code> ships to the worker. This is the one thing standing between the system and working output.</span></div></li>
+    <li><span class="pill p-hold">pending</span><div class="bd"><span class="ti">Skill rewrite not installed</span><span class="no">Four files rewritten against the writing-great-skills doctrine, confined to an isolated worktree. All named guardrails survive — but the set grew 740 → 765 lines, which is the wrong direction for a density pass.</span></div></li>
+    <li><span class="pill p-hold">pending</span><div class="bd"><span class="ti">Mobile and print unobserved</span><span class="no">Only 1280px desktop has been looked at. Overflow and print breakage remain untested.</span></div></li>
+    <li><span class="pill p-idle">exposure</span><div class="bd"><span class="ti">Two dirty working trees</span><span class="no">Waymark and the SKILLS worktree both hold substantial unversioned work. A lost tree costs the whole session.</span></div></li>
+  </ul>
+</section>
+
+<section id="next">
+  <h2>Next</h2>
+  <ol class="steps">
+    <li>Build and deploy the worker so <code>theme.css</code> reaches production, then re-render the themed artifacts against it.</li>
+    <li>Prune the skill rewrite back toward density before any copy is installed.</li>
+    <li>Check mobile and print, and repair once against whatever that surfaces.</li>
+    <li>Sync the five skill destinations.</li>
+    <li>Decide what gets committed, and on which branch.</li>
+  </ol>
+  <div class="note ok" style="margin-top:24px">
+    <h3>Held throughout</h3>
+    <p>The protected <code>~/SKILLS</code> checkout still shows exactly its five pre-existing <code>bespoke-ui</code> and <code>design-directions</code> entries. No delegated run staged, committed, reverted, or cleaned anything.</p>
+  </div>
+</section>
+
+<footer>
+  <span>Raw artifact — self-contained, no server theme</span>
+  <span>·</span>
+  <span>18 August 2026</span>
+</footer>
+
+</div>
+</body>
+</html>

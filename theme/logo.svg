@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Waymark logo">
+  <!-- the cairn: three stacked slabs with a subtle rightward lean,
+       ink stones below and the teal signal stone on top -->
+  <rect x="11"   y="40" width="42" height="10" rx="3" fill="#2c2f38"/>
+  <rect x="19"   y="28" width="29" height="10" rx="3" fill="#2c2f38"/>
+  <rect x="25.5" y="16" width="16" height="10" rx="3" fill="#1e7c6c"/>
+</svg>

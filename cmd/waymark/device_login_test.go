@@ -77,6 +77,38 @@ func TestNormalizeServerURLAcceptsLocalhostSubdomain(t *testing.T) {
 	}
 }
 
+func TestUpdateSendsIfUpdatedAtPrecondition(t *testing.T) {
+	bodyPath := filepath.Join(t.TempDir(), "body.html")
+	if err := os.WriteFile(bodyPath, []byte("<p>updated</p>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WAYMARK_TOKEN", "test-token")
+	const expected = "2026-08-18T12:00:00Z"
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || r.URL.Path != "/api/pages/page1" {
+			t.Fatalf("request = %s %s", r.Method, r.URL.Path)
+		}
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request["if_updated_at"] != expected {
+			t.Fatalf("if_updated_at = %#v, want %q", request["if_updated_at"], expected)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": "page1", "url": server.URL + "/p/page1", "title": "Updated",
+			"updated_at": "2026-08-18T12:01:00Z",
+		})
+	}))
+	t.Cleanup(server.Close)
+
+	if err := cmdUpdate([]string{"--server", server.URL, "--if-updated-at", expected, "page1", bodyPath}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDeviceDiscovery404RequestsDeploymentUpgrade(t *testing.T) {
 	t.Setenv("WAYMARK_CONFIG_DIR", t.TempDir())
 	server := httptest.NewServer(http.NotFoundHandler())

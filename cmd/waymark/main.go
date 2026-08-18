@@ -10,9 +10,10 @@
 //
 //	waymark login   [--server URL]
 //	waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
+//	waymark preview --title "Title" --output FILE [--force] <file|->
 //	waymark list    [--limit N] [--json]
 //	waymark get     [--json] <id>
-//	waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
+//	waymark update  [--title T] [--slug s] [--raw] [--ttl N] [--if-updated-at RFC3339] <id> [<file|->]
 //	waymark delete  <id>
 //	waymark version
 package main
@@ -33,7 +34,7 @@ import (
 	"time"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -51,6 +52,8 @@ func main() {
 		err = cmdStatus(os.Args[2:])
 	case "create":
 		err = cmdCreate(os.Args[2:])
+	case "preview":
+		err = cmdPreview(os.Args[2:])
 	case "list", "ls":
 		err = cmdList(os.Args[2:])
 	case "get":
@@ -90,9 +93,10 @@ Setup:
 
 Commands:
   create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->   publish a page
+  preview --title "Title" --output FILE [--force] <file|->         render offline HTML
   list    [--limit N] [--json]                                    list pages
   get     [--json] <id>                                           show page metadata
-  update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file>]  replace a page
+  update  [--title T] [--slug s] [--raw] [--ttl N] [--if-updated-at RFC3339] <id> [<file>]  replace a page
   delete  <id>                                                    delete a page
   version                                                         print version
 
@@ -151,6 +155,7 @@ func cmdUpdate(args []string) error {
 	slug := fs.String("slug", "", "new slug")
 	raw := fs.Bool("raw", false, "serve as a complete HTML document (no house theme)")
 	ttl := fs.Int("ttl", 0, "auto-delete after N days (0 = never)")
+	ifUpdatedAt := fs.String("if-updated-at", "", "only update if updated_at still matches this RFC3339 timestamp")
 	jsonOut := fs.Bool("json", false, "print the raw JSON response")
 	server := commonFlags(fs)
 	if err := parse(fs, args); err != nil {
@@ -184,7 +189,10 @@ func cmdUpdate(args []string) error {
 	if set["ttl"] {
 		req["ttl_days"] = *ttl
 	}
-	if len(req) == 0 {
+	if set["if-updated-at"] {
+		req["if_updated_at"] = *ifUpdatedAt
+	}
+	if len(req) == 0 || (len(req) == 1 && set["if-updated-at"]) {
 		return errors.New("nothing to update: pass a <file> and/or --title/--slug/--raw/--ttl")
 	}
 

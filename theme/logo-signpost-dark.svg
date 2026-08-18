@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Waymark signpost logo">
+  <!-- a slightly tipsy trail signpost: teal arrow one way, amber the other -->
+  <g transform="rotate(-4 32 32)">
+    <rect x="29" y="10" width="6" height="44" rx="3" fill="#e9ecf1"/>
+    <path d="M26 14h18l8 5-8 5H26a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z"
+          fill="#57cdb8" stroke="#57cdb8" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M38 28H24l-9 5 9 5h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2z"
+          fill="#f6b23a" stroke="#f6b23a" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="22" y="55" width="20" height="3" rx="1.5" fill="#e9ecf1"/>
+  </g>
+</svg>
