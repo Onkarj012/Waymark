@@ -124,6 +124,80 @@ func TestCalloutFallbackContract(t *testing.T) {
 	}
 }
 
+func TestVisualPlanProfileContract(t *testing.T) {
+	for _, selector := range []string{
+		"article.plan[data-plan-profile] {",
+		`article.plan[data-plan-profile="systems"]`,
+		`article.plan[data-plan-profile="journey"]`,
+		`article.plan[data-plan-profile="migration"]`,
+		`article.plan[data-plan-profile="decision"]`,
+		`article.plan[data-plan-profile="delivery"]`,
+	} {
+		if !strings.Contains(CSS, selector) {
+			t.Errorf("visual plan profile selector %q was not found", selector)
+		}
+	}
+}
+
+func TestVisualPlanComponentSelectorContract(t *testing.T) {
+	for _, selector := range []string{
+		".plan-identity {",
+		".change-map {",
+		".system-flow {",
+		".phase-roadmap {",
+		".phase-detail {",
+		".dependency-flow {",
+		".decision-grid {",
+		".file-impact {",
+		".risk-list,",
+		".verification-board {",
+		".open-questions {",
+	} {
+		if !strings.Contains(CSS, selector) {
+			t.Errorf("visual plan component selector %q was not found", selector)
+		}
+	}
+}
+
+func TestVisualPlanResponsiveContract(t *testing.T) {
+	for _, rule := range []string{
+		".change-map { grid-template-columns: 1fr; }",
+		".change-direction::after { content: \"↓\"; }",
+		".system-flow .flow-track { grid-template-columns: 1fr; gap: 10px; }",
+		".plan-identity .identity-register { grid-template-columns: 1fr; }",
+		".risk-item,\n  .verification-item { grid-template-columns: 1fr; gap: 4px; }",
+	} {
+		if !strings.Contains(CSS, rule) {
+			t.Errorf("visual plan responsive rule %q was not found", rule)
+		}
+	}
+}
+
+func TestVisualPlanPrintContract(t *testing.T) {
+	for _, rule := range []string{
+		"article.plan[data-plan-profile] { --plan-signal: #333333; --plan-signal-soft: #f5f5f5; --plan-track: #777777; }",
+		".change-state, .system-flow, .phase-detail, .decision-option, .open-questions { break-inside: avoid; }",
+		".risk-item .status-text,\n  .verification-item .status-text { color: #111111 !important; }",
+	} {
+		if !strings.Contains(CSS, rule) {
+			t.Errorf("visual plan print rule %q was not found", rule)
+		}
+	}
+}
+
+func TestVisualPlanTextStatusContract(t *testing.T) {
+	for _, selector := range []string{
+		`.phase-roadmap > li[data-status="active"]`,
+		`.decision-option[data-recommendation="recommended"]`,
+		`.risk-item[data-severity="high"] .status-text`,
+		`.verification-item[data-status="passed"] .status-text`,
+	} {
+		if !strings.Contains(CSS, selector) {
+			t.Errorf("text status selector %q was not found", selector)
+		}
+	}
+}
+
 // darkThemeColor reads a variable from the :root[data-theme="dark"] block only,
 // so a dark value is never silently compared against its light counterpart.
 func darkThemeColor(t *testing.T, name string) [3]float64 {

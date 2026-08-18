@@ -49,7 +49,7 @@ func TestCreateAndServeThemedPage(t *testing.T) {
 	if !bytes.Contains(page, []byte("<title>Status &lt;check&gt;</title>")) {
 		t.Fatalf("title was not escaped: %s", page)
 	}
-	if !bytes.Contains(page, []byte("<script>window.demo=true</script>")) {
+	if !bytes.Contains(page, []byte("<script>window.demo=true</script><p>Hello</p>")) {
 		t.Fatalf("publisher HTML contract changed: %s", page)
 	}
 	credit := `<footer class="waymark-credit">
@@ -58,8 +58,14 @@ func TestCreateAndServeThemedPage(t *testing.T) {
 	if !bytes.Contains(page, []byte(credit)) {
 		t.Fatalf("generated credit is missing or unsafe: %s", page)
 	}
-	if bytes.Index(page, []byte(credit)) < bytes.Index(page, []byte("<script>window.demo=true</script>")) {
+	if bytes.Index(page, []byte(credit)) < bytes.Index(page, []byte("<script>window.demo=true</script><p>Hello</p>")) {
 		t.Fatalf("generated credit appeared before publisher content: %s", page)
+	}
+	if !bytes.Contains(page, []byte(`<html lang="en" data-theme="dark">`)) {
+		t.Fatalf("hosted page is not dark-first: %s", page)
+	}
+	if !bytes.Contains(page, []byte(`<link rel="stylesheet" href="/theme.css">`)) {
+		t.Fatalf("hosted page did not link /theme.css: %s", page)
 	}
 	if got := pageResp.Header.Get("Referrer-Policy"); got != "no-referrer" {
 		t.Fatalf("Referrer-Policy = %q", got)

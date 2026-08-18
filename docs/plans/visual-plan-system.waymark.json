@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "status": "draft",
+  "title": "Visual-first agent planning system",
+  "slug": "visual-plan-system",
+  "visual_profile": "systems",
+  "source_path": "docs/plans/visual-plan-system.md",
+  "source_sha256": "5c378a6c218857157968d44b47c1463d7329bab3180865f8394fd5c2a9de2578",
+  "html_path": "docs/plans/visual-plan-system.waymark.html",
+  "html_sha256": "303a19e5fe2634cc5374b957f1616dfe736deaa04937c39bd34416d759ed0fe4",
+  "page_id": null,
+  "url": null,
+  "ttl_days": 0,
+  "last_known_updated_at": null
+}

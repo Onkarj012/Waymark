@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Example: checkout service migration</title>
+<style>
 /* ===========================================================================
    Waymark — House Theme
    Cold, precise, denotative. A lit field with sparse machined furniture,
@@ -701,3 +708,197 @@ footer {
   .file-impact .impact-kind { text-align: left; }
   .file-impact .impact-note { grid-column: auto; margin-top: 0; }
 }
+</style>
+<script>(function(){try{var t=localStorage.getItem("waymark-theme");if(t==="light")document.documentElement.removeAttribute("data-theme");else if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
+</head>
+<body>
+<div class="reading-progress" aria-hidden="true"></div>
+<button class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"></path></svg>
+</button>
+<main class="page">
+<article class="plan" data-plan-profile="migration">
+<div class="page-layout">
+  <aside class="section-nav" aria-label="Plan sections">
+    <p class="label">Migration plan</p>
+    <nav>
+      <ul>
+        <li><a href="#summary">Summary</a></li>
+        <li><a href="#change">Change map</a></li>
+        <li><a href="#evidence">Evidence</a></li>
+        <li><a href="#decisions">Decisions</a></li>
+        <li><a href="#scope">Scope</a></li>
+        <li><a href="#design">Design</a></li>
+        <li><a href="#phases">Phases</a></li>
+        <li><a href="#verification">Verification</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#questions">Questions</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="page-content">
+    <header class="plan-identity">
+      <p class="identity-kicker">Migration profile · checkout platform</p>
+      <h1>Example: checkout service migration</h1>
+      <p class="dek identity-summary">Move authorization and order finalization into Checkout Core while keeping the checkout edge and customer contract stable.</p>
+      <dl class="identity-register">
+        <div><dt>Owner</dt><dd>Checkout platform</dd></div>
+        <div><dt>State</dt><dd>Draft</dd></div>
+        <div><dt>Sequence</dt><dd>Parity → reads → writes</dd></div>
+        <div><dt>Constraint</dt><dd>No public URL change</dd></div>
+      </dl>
+    </header>
+
+    <section id="summary">
+      <h2>Summary</h2>
+      <div class="callout note">
+        <span class="ico" aria-hidden="true">→</span>
+        <div class="body"><div class="title">Destination</div><p>Checkout Core owns 100% of eligible traffic after a 48-hour stabilization window, with the monolith retained as a rehearsed rollback writer.</p></div>
+      </div>
+      <section class="stats" aria-label="Migration summary">
+        <div class="stat"><div class="label">Traffic gates</div><div class="value">3</div><div class="sub">10% → 50% → 100%</div></div>
+        <div class="stat"><div class="label">Rollback budget</div><div class="value">10m</div><div class="sub">Return writes to monolith</div></div>
+        <div class="stat"><div class="label">Stabilization</div><div class="value">48h</div><div class="sub">Before completion review</div></div>
+        <div class="stat"><div class="label">Primary risk</div><div class="value">1</div><div class="sub">Duplicate authorization</div></div>
+      </section>
+    </section>
+
+    <section id="change">
+      <h2>Current to future</h2>
+      <div class="change-map" aria-label="Current and target checkout delivery model">
+        <section class="change-state">
+          <span class="state-label">Before</span>
+          <h3>Monolithic checkout</h3>
+          <p>Edge requests, payment authorization, and order finalization run through one service and one database writer.</p>
+        </section>
+        <div class="change-direction" aria-label="Changes to">Changes to</div>
+        <section class="change-state after">
+          <span class="state-label">After</span>
+          <h3>Checkout Core behind the edge</h3>
+          <p>The edge preserves the contract while Core owns staged authorization and finalization with a proven rollback path.</p>
+        </section>
+      </div>
+      <p>The migration direction is explicit: the public edge stays fixed while service ownership moves behind it in controlled gates.</p>
+    </section>
+
+    <section id="evidence">
+      <h2>Evidence</h2>
+      <dl class="facts">
+        <dt>Baseline sample</dt><dd>30-day synthetic planning input</dd>
+        <dt>Checkout success</dt><dd>99.94%</dd>
+        <dt>Authorization p95</dt><dd>820 ms</dd>
+        <dt>Current writer</dt><dd>Monolithic Checkout API</dd>
+      </dl>
+      <div class="callout warn">
+        <span class="ico" aria-hidden="true">!</span>
+        <div class="body"><div class="title">Baseline must be replaced</div><p>These figures are synthetic planning inputs. Phase 0 must capture a dated production baseline before a traffic decision.</p></div>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2>Decisions</h2>
+      <div class="decision-grid">
+        <article class="decision-option" data-recommendation="recommended">
+          <span class="decision-verdict">Recommended</span>
+          <h3>Strangler sequence</h3>
+          <p>Prove contract parity, shadow reads, read cutover, then write cutover with a gate between each step.</p>
+        </article>
+        <article class="decision-option" data-recommendation="rejected">
+          <span class="decision-verdict">Not selected</span>
+          <h3>Single switch</h3>
+          <p>Moves payment and order risk at once and removes the evidence needed for a safe rollback.</p>
+        </article>
+      </div>
+      <div class="callout ok">
+        <span class="ico" aria-hidden="true">✓</span>
+        <div class="body"><div class="title">Contract stays stable</div><p>The checkout edge remains the customer-facing boundary throughout the migration.</p></div>
+      </div>
+    </section>
+
+    <section id="scope">
+      <h2>Scope</h2>
+      <ul>
+        <li>Checkout Core API, edge routing, shadow comparison, dashboards, and rollback controls.</li>
+        <li>Contract, timeout, duplicate-submit, reconciliation, and cutover verification.</li>
+        <li>No payment-provider replacement, UI redesign, pricing change, or order-database split.</li>
+      </ul>
+    </section>
+
+    <section id="design">
+      <h2>Requirements and design</h2>
+      <figure class="system-flow">
+        <ol class="flow-track">
+          <li class="flow-node"><span class="flow-label">Checkout edge</span><span class="flow-note">Stable public contract</span></li>
+          <li class="flow-node"><span class="flow-label">Rollout flag</span><span class="flow-note">Selects eligible traffic</span></li>
+          <li class="flow-node"><span class="flow-label">Checkout Core</span><span class="flow-note">Orchestrates transitions</span></li>
+          <li class="flow-node"><span class="flow-label">Order store</span><span class="flow-note">Single writer until gate</span></li>
+          <li class="flow-node"><span class="flow-label">Reconciliation</span><span class="flow-note">Proves parity before increase</span></li>
+        </ol>
+        <figcaption>Request path and control loop during the staged migration.</figcaption>
+      </figure>
+      <p>Every request carries a correlation ID and payment attempt key. Shadow mode compares normalized outcomes without issuing a second authorization; the same key makes retries safe across the cutover boundary.</p>
+    </section>
+
+    <section id="phases">
+      <h2>Phases</h2>
+      <ol class="phase-roadmap" aria-label="Checkout migration phases">
+        <li data-status="complete"><span class="phase-index">Phase 00</span><span class="phase-name">Baseline and contract</span><span class="status-text">Complete</span></li>
+        <li data-status="active"><span class="phase-index">Phase 01</span><span class="phase-name">Parity and shadow</span><span class="status-text">In progress</span></li>
+        <li data-status="planned"><span class="phase-index">Phase 02</span><span class="phase-name">Move reads</span><span class="status-text">Planned</span></li>
+        <li data-status="planned"><span class="phase-index">Phase 03</span><span class="phase-name">Move writes</span><span class="status-text">Planned</span></li>
+      </ol>
+      <div class="phase-detail">
+        <h3>Phase 01 — parity and shadow</h3>
+        <p class="phase-outcome"><strong>Outcome:</strong> Core produces equivalent normalized outcomes for one full business day without duplicate payment authorization.</p>
+        <ul><li>Deploy the internal Core route.</li><li>Compare status, order state, and normalized provider outcomes.</li><li>Stop on unexplained mismatch before read exposure.</li></ul>
+      </div>
+      <h3>Dependencies</h3>
+      <ol class="dependency-flow">
+        <li><span class="dependency-key">BAS</span><div class="dependency-body"><span class="dependency-name">Dated production baseline</span><span class="dependency-note">Required before any percentage gate is approved.</span></div></li>
+        <li><span class="dependency-key">CON</span><div class="dependency-body"><span class="dependency-name">Contract and idempotency fixtures</span><span class="dependency-note">Required before shadow comparison can distinguish safe retries.</span></div></li>
+        <li><span class="dependency-key">REC</span><div class="dependency-body"><span class="dependency-name">Reconciliation dashboard</span><span class="dependency-note">Required before each read or write traffic increase.</span></div></li>
+        <li><span class="dependency-key">RBK</span><div class="dependency-body"><span class="dependency-name">Rollback rehearsal</span><span class="dependency-note">Required before moving writes beyond the first 10% gate.</span></div></li>
+      </ol>
+    </section>
+
+    <section id="verification">
+      <h2>Acceptance and verification</h2>
+      <ul class="verification-board">
+        <li class="verification-item" data-status="passed"><span class="status-text">Passed</span><div class="verification-body"><span class="verification-title">Plan contract</span><span class="verification-note">Current, future, sequence, risk, and completion proof are represented in the artifact.</span></div></li>
+        <li class="verification-item" data-status="pending"><span class="status-text">Pending</span><div class="verification-body"><span class="verification-title">Production baseline</span><span class="verification-note">Replace synthetic inputs with a dated success, latency, and duplicate-submit baseline.</span></div></li>
+        <li class="verification-item" data-status="pending"><span class="status-text">Pending</span><div class="verification-body"><span class="verification-title">Rollback drill</span><span class="verification-note">Return eligible writes to the monolith within ten minutes and reconcile in-flight attempts.</span></div></li>
+        <li class="verification-item" data-status="pending"><span class="status-text">Pending</span><div class="verification-body"><span class="verification-title">Stabilization proof</span><span class="verification-note">Keep 100% eligible traffic on Core for 48 hours with zero unexplained integrity divergence.</span></div></li>
+      </ul>
+    </section>
+
+    <section id="risks">
+      <h2>Risks and mitigations</h2>
+      <ul class="risk-list">
+        <li class="risk-item" data-severity="high"><span class="status-text">High risk</span><div class="risk-body"><span class="risk-title">Duplicate authorization</span><span class="risk-note">Carry one attempt key, prohibit shadow authorization, and alert on provider idempotency conflicts.</span></div></li>
+        <li class="risk-item" data-severity="medium"><span class="status-text">Medium risk</span><div class="risk-body"><span class="risk-title">Order divergence</span><span class="risk-note">Compare normalized transitions and block traffic increases on any unexplained mismatch.</span></div></li>
+        <li class="risk-item" data-severity="medium"><span class="status-text">Medium risk</span><div class="risk-body"><span class="risk-title">Rollback gap</span><span class="risk-note">Drain in-flight requests, replay the outbox, and verify reconciliation before restoring writes.</span></div></li>
+        <li class="risk-item" data-severity="low"><span class="status-text">Low risk</span><div class="risk-body"><span class="risk-title">Provider timeout sensitivity</span><span class="risk-note">Measure p95 and p99 at every gate and retain the monolith route for rollback.</span></div></li>
+      </ul>
+    </section>
+
+    <section id="questions">
+      <h2>Open questions</h2>
+      <aside class="open-questions" aria-labelledby="open-questions-title">
+        <span class="question-count">2 open questions</span>
+        <h3 id="open-questions-title">Resolve before write cutover</h3>
+        <ol><li>Which on-call role owns the final 100% decision?</li><li>Must the 48-hour window include weekend traffic before decommission review?</li></ol>
+      </aside>
+    </section>
+  </div>
+</div>
+</article>
+
+<footer class="waymark-credit">
+<a href="https://github.com/Onkarj012/Waymark" target="_blank" rel="noopener noreferrer">generated on Waymark</a>
+</footer>
+</main>
+<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});})();</script>
+<script>(function(){var links=[].slice.call(document.querySelectorAll(".section-nav a[href^='#']")),bar=document.querySelector(".reading-progress");if(!links.length&&!bar)return;var sections=links.map(function(a){return document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));}),list=document.querySelector(".section-nav ul"),current=-1,ticking=false;function paint(i){if(i===current)return;current=i;links.forEach(function(a,n){a.classList.toggle("is-active",n===i);a.classList.toggle("is-read",n<i);if(n===i)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");});if(list)list.style.setProperty("--spine",(links.length>1?i/(links.length-1)*100:100)+"%");}function pick(){var line=innerHeight*.28,best=0,i,s;for(i=0;i<sections.length;i++){s=sections[i];if(s&&s.getBoundingClientRect().top<=line)best=i;}if(sections.length&&innerHeight+scrollY>=document.body.scrollHeight-4)best=sections.length-1;if(links.length)paint(best);if(bar){var max=document.documentElement.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,scrollY/max*100):0)+"%";}}function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){pick();ticking=false;});}addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);pick();})();</script>
+</body>
+</html>

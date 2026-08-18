@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "status": "draft",
+  "title": "Example: checkout service migration",
+  "slug": "example-checkout-migration",
+  "visual_profile": "migration",
+  "source_path": "docs/plans/fixtures/example-checkout-migration.md",
+  "source_sha256": "29b2658f84b55c77171a8a2a0262ada92b81ca88280e3ce600d9e5a06db2cd85",
+  "html_path": "docs/plans/fixtures/example-checkout-migration.waymark.html",
+  "html_sha256": "cfae781b5752f58415d91016c50259818fe77f8a4eef6fdb741192aa9d77c0af",
+  "page_id": null,
+  "url": null,
+  "ttl_days": 0,
+  "last_known_updated_at": null
+}

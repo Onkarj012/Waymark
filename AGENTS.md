@@ -49,7 +49,9 @@ verbatim.
 |---|---|
 | `cmd/server/main.go` | server entrypoint: config, expiry sweeper, graceful shutdown |
 | `cmd/waymark/main.go` | CLI commands (`create`/`list`/`get`/`update`/`delete`/`login`/…) |
+| `cmd/waymark/preview.go` | deterministic offline standalone themed preview |
 | `cmd/waymark/config.go` | CLI token storage and server/token resolution |
+| `internal/render/render.go` | shared themed body validation and hosted/standalone document rendering |
 | `internal/store/store.go` | SQLite persistence; `Page`/`Meta` models; CRUD + expiry sweep |
 | `internal/web/server.go` | host gating, scoped auth, themed rendering, JSON handlers |
 | `internal/web/id.go` | unguessable base62 page IDs (crypto/rand) |
@@ -94,6 +96,18 @@ printf '<h1>Hi</h1><p>It works.</p>' > /tmp/body.html
 ./bin/waymark list
 ```
 
+Offline themed preview needs no server, credentials, config, network, auth,
+publishing, or browser:
+
+```bash
+./bin/waymark preview --title "Smoke" --output /tmp/smoke.html /tmp/body.html
+```
+
+The command validates the shared themed body contract, embeds `theme.CSS` in a
+standalone document through `internal/render`, creates parent directories, and
+refuses an existing output unless `--force` is passed. Given the same title,
+body, and embedded theme, it writes the same bytes.
+
 Tests cover CLI credential handling, storage lifecycle and permissions, API
 authentication, rendering headers, and page-path log redaction. Add focused
 regression tests alongside behavior changes.
@@ -109,8 +123,10 @@ regression tests alongside behavior changes.
   that version (`golang:1.25-alpine`). If a dependency bumps it, bump the image
   too.
 - **Themed vs raw is a hard contract.** Themed content must be *body only* — no
-  `<!doctype>`, `<html>`, `<head>`, or `<style>`; the server adds those. Raw
-  content must be a complete document. Don't blur the two.
+  `<!doctype>`, `<html>`, `<head>`, `<body>`, `<style>`, or `<script>`; the
+  renderer adds document markup, styling, and behavior. Raw content must be a
+  complete document. Don't blur the two. `waymark preview` enforces this shared
+  themed-body validator and permits semantic body HTML including inline SVG.
 - **The theme lives in exactly one place: `theme/theme.css`.** It's embedded into
   the binary and served at `/theme.css`. `theme/demo.html` links the source file
   directly, so visual previews cannot drift from the embedded stylesheet.

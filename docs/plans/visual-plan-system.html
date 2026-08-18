@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual-plan system</title>
+<style>
 /* ===========================================================================
    Waymark — House Theme
    Cold, precise, denotative. A lit field with sparse machined furniture,
@@ -701,3 +708,176 @@ footer {
   .file-impact .impact-kind { text-align: left; }
   .file-impact .impact-note { grid-column: auto; margin-top: 0; }
 }
+</style>
+<script>(function(){try{var t=localStorage.getItem("waymark-theme");if(t==="light")document.documentElement.removeAttribute("data-theme");else if(t==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();</script>
+</head>
+<body>
+<div class="reading-progress" aria-hidden="true"></div>
+<button class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"></path></svg>
+</button>
+<main class="page">
+<article class="plan" data-plan-profile="systems">
+<div class="page-layout">
+  <aside class="section-nav" aria-label="Plan sections">
+    <p class="label">Visual plan</p>
+    <nav>
+      <ul>
+        <li><a href="#orientation">Orientation</a></li>
+        <li><a href="#change">Change map</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#controls">Controls</a></li>
+        <li><a href="#acceptance">Acceptance</a></li>
+        <li><a href="#risks">Risks</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="page-content">
+    <header>
+      <p class="label">SYSTEMS PROFILE · IMPLEMENTATION PLAN</p>
+      <h1>Visual-first agent planning system</h1>
+      <p class="dek">Turn settled decisions into plans people can understand at a glance—without letting plan creation become a project of its own.</p>
+      <div class="meta">
+        <span class="badge warn">Draft</span>
+        <span>Awaiting user approval</span>
+        <span class="sep">|</span>
+        <span>Waymark + shared agent skills</span>
+        <span class="sep">|</span>
+        <span>Permanent after approval</span>
+      </div>
+    </header>
+
+    <div class="callout warn">
+      <span class="ico" aria-hidden="true">!</span>
+      <div class="body">
+        <div class="title">Approval is the boundary</div>
+        <p>This draft may be inspected locally. It must not be published, handed to an executor, implemented, committed, or filed as an issue or pull request until the user explicitly approves the named downstream actions.</p>
+      </div>
+    </div>
+
+    <section class="stats" aria-label="Plan summary">
+      <div class="stat"><div class="label">Change surfaces</div><div class="value">2</div><div class="sub">Waymark + SKILLS</div></div>
+      <div class="stat"><div class="label">Implementation phases</div><div class="value">6</div><div class="sub">Ordered and independently checked</div></div>
+      <div class="stat"><div class="label">Repair budget</div><div class="value">1</div><div class="sub">Then stop and report</div></div>
+      <div class="stat"><div class="label">Material questions</div><div class="value">0</div><div class="sub">Design frontier is closed</div></div>
+    </section>
+
+    <section id="orientation">
+      <h2>Orientation</h2>
+      <div class="callout note">
+        <span class="ico" aria-hidden="true">→</span>
+        <div class="body"><div class="title">Destination</div><p>Every explicit planning run produces canonical Markdown, synchronized visual HTML, metadata, and one local preview. The first screen explains destination, change, sequence, primary risk, and completion proof.</p></div>
+      </div>
+      <dl class="facts">
+        <dt>Default appearance</dt><dd>Dark first; persistent light-mode choice</dd>
+        <dt>Identity model</dt><dd>One Waymark system, five controlled plan profiles</dd>
+        <dt>Visual policy</dt><dd>Visualize meaningful relationships; never chase a quota</dd>
+        <dt>Quality ceiling</dt><dd>Compose once, validate once, inspect once, repair at most once</dd>
+      </dl>
+    </section>
+
+    <section id="change">
+      <h2>Change map</h2>
+      <figure aria-labelledby="change-caption">
+        <svg viewBox="0 0 900 280" role="img" aria-labelledby="change-title change-desc">
+          <title id="change-title">Transition from text-heavy plans to visual, approval-gated plans</title>
+          <desc id="change-desc">Three connected stages show the current text-heavy plan, the new visual compiler, and a human-approved executable plan.</desc>
+          <defs><marker id="arrow-change" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"></path></marker></defs>
+          <rect x="24" y="54" width="230" height="150" rx="4" fill="var(--surface-2)" stroke="var(--border-strong)"></rect>
+          <text x="48" y="88" fill="var(--text-faint)" font-size="16" font-family="var(--font-mono)">CURRENT</text>
+          <text x="48" y="125" fill="var(--text)" font-size="24" font-weight="600" font-family="var(--font-sans)">Text-heavy plan</text>
+          <text x="48" y="157" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Long read before orientation</text>
+          <text x="48" y="181" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Generic link-only handoff</text>
+          <line x1="274" y1="129" x2="326" y2="129" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
+          <rect x="342" y="30" width="240" height="198" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"></rect>
+          <text x="366" y="66" fill="var(--accent-text)" font-size="16" font-family="var(--font-mono)">VISUAL COMPILER</text>
+          <text x="366" y="103" fill="var(--text)" font-size="24" font-weight="600" font-family="var(--font-sans)">Plan-shaped view</text>
+          <text x="366" y="137" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Identity + visual grammar</text>
+          <text x="366" y="163" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Checksums + local preview</text>
+          <text x="366" y="189" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">One bounded quality pass</text>
+          <line x1="602" y1="129" x2="654" y2="129" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
+          <rect x="670" y="54" width="206" height="150" rx="4" fill="var(--surface-2)" stroke="var(--border-strong)"></rect>
+          <text x="694" y="88" fill="var(--ok)" font-size="16" font-family="var(--font-mono)">DESTINATION</text>
+          <text x="694" y="125" fill="var(--text)" font-size="24" font-weight="600" font-family="var(--font-sans)">Human approval</text>
+          <text x="694" y="157" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Understand first</text>
+          <text x="694" y="181" fill="var(--text-muted)" font-size="16" font-family="var(--font-sans)">Then publish + hand off</text>
+        </svg>
+        <figcaption id="change-caption">The change is not Markdown with decoration. It is a bounded compiler from settled decisions into a visual review surface and an exact executor specification.</figcaption>
+      </figure>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <div class="table-wrap" role="region" aria-label="Implementation phases" tabindex="0">
+        <table>
+          <caption>Each phase produces one checkable capability</caption>
+          <thead><tr><th scope="col">Phase</th><th scope="col">Outcome</th><th scope="col">Proof</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">0 · Base</th><td>Stack on <code>2d61439</code>; isolate dirty SKILLS work</td><td>Clean implementation worktrees</td></tr>
+            <tr><th scope="row">1 · Render</th><td>Server and CLI share a standard-library renderer</td><td>Go/Worker parity; no SQLite in CLI deps</td></tr>
+            <tr><th scope="row">2 · Visuals</th><td>Five profiles and ten component families</td><td>Contract, contrast, responsive, and print tests</td></tr>
+            <tr><th scope="row">3 · Preview</th><td>Offline standalone preview without auth</td><td>Safety, overwrite, stdin, and SVG tests</td></tr>
+            <tr><th scope="row">4 · Verify</th><td>Versioned checksummed plan artifacts</td><td>Stamp and verify tests</td></tr>
+            <tr><th scope="row">5–6 · Teach</th><td>Shared bounded approval workflow</td><td>Byte-identical skill copies and one local proof</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="controls">
+      <h2>Controls</h2>
+      <section class="stats" aria-label="Bounded plan creation loop">
+        <div class="stat"><div class="label">1 · Compose</div><div class="value">Once</div><div class="sub">Markdown and visual body</div></div>
+        <div class="stat"><div class="label">2 · Validate</div><div class="value">Once</div><div class="sub">Safety, structure, paths, anchors</div></div>
+        <div class="stat"><div class="label">3 · Inspect</div><div class="value">Once</div><div class="sub">Desktop, mobile, and print</div></div>
+        <div class="stat"><div class="label">4 · Repair</div><div class="value">≤ 1</div><div class="sub">Only a concrete defect</div></div>
+      </section>
+      <div class="callout ok"><span class="ico" aria-hidden="true">✓</span><div class="body"><div class="title">Fallback beats perfection</div><p>If a graph is difficult, use the documented table, cards, roadmap, or structured list. Lack of decoration is not a failed gate.</p></div></div>
+      <div class="callout warn"><span class="ico" aria-hidden="true">■</span><div class="body"><div class="title">Nothing crosses the approval gate early</div><p>No public page, executor handoff, branch, commit, issue, pull request, or implementation begins while status is <strong>Draft</strong>.</p></div></div>
+    </section>
+
+    <section id="acceptance">
+      <h2>Acceptance dashboard</h2>
+      <div class="table-wrap" role="region" aria-label="Acceptance criteria" tabindex="0">
+        <table>
+          <caption>Completion requires observable behavior, not subjective polish</caption>
+          <thead><tr><th scope="col">Capability</th><th scope="col">Required evidence</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Dark-first, light-capable</th><td>First visit is dark; saved light survives reload</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Plan identity</th><td>Five profiles work in both themes and print</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Visual understanding</th><td>First screen answers destination, change, sequence, risk, proof</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Approval safety</th><td>No downstream action occurs while status is Draft</td><td><span class="badge warn">Awaiting approval</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2>Risks</h2>
+      <div class="table-wrap" role="region" aria-label="Principal risks and mitigations" tabindex="0">
+        <table>
+          <caption>The risks most likely to undermine the destination</caption>
+          <thead><tr><th scope="col">Risk</th><th scope="col">Signal</th><th scope="col">Mitigation</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Theme branch dependency</th><td><span class="badge warn">Watch</span></td><td>Stack explicitly on <code>2d61439</code></td></tr>
+            <tr><th scope="row">Planning becomes design theatre</th><td><span class="badge warn">Watch</span></td><td>No visual quota; one repair maximum</td></tr>
+            <tr><th scope="row">Active HTML content</th><td><span class="badge bad">Guard</span></td><td>Reject scripts, styles, full-document tags, and raw mode</td></tr>
+            <tr><th scope="row">Skill copies drift</th><td><span class="badge warn">Watch</span></td><td>Reconcile sources and require empty recursive diffs</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout ok"><span class="ico" aria-hidden="true">✓</span><div class="body"><div class="title">Ready for approval</div><p>There are no material open design questions. Publication and handoff remain locked until explicit user approval.</p></div></div>
+    </section>
+  </div>
+</div>
+</article>
+
+<footer class="waymark-credit">
+<a href="https://github.com/Onkarj012/Waymark" target="_blank" rel="noopener noreferrer">generated on Waymark</a>
+</footer>
+</main>
+<script>(function(){var root=document.documentElement,btn=document.querySelector(".theme-toggle");function apply(t){if(t==="dark")root.setAttribute("data-theme","dark");else root.removeAttribute("data-theme");}if(btn)btn.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";apply(t);try{localStorage.setItem("waymark-theme",t);}catch(e){}});})();</script>
+<script>(function(){var links=[].slice.call(document.querySelectorAll(".section-nav a[href^='#']")),bar=document.querySelector(".reading-progress");if(!links.length&&!bar)return;var sections=links.map(function(a){return document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));}),list=document.querySelector(".section-nav ul"),current=-1,ticking=false;function paint(i){if(i===current)return;current=i;links.forEach(function(a,n){a.classList.toggle("is-active",n===i);a.classList.toggle("is-read",n<i);if(n===i)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");});if(list)list.style.setProperty("--spine",(links.length>1?i/(links.length-1)*100:100)+"%");}function pick(){var line=innerHeight*.28,best=0,i,s;for(i=0;i<sections.length;i++){s=sections[i];if(s&&s.getBoundingClientRect().top<=line)best=i;}if(sections.length&&innerHeight+scrollY>=document.body.scrollHeight-4)best=sections.length-1;if(links.length)paint(best);if(bar){var max=document.documentElement.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,scrollY/max*100):0)+"%";}}function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){pick();ticking=false;});}addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);pick();})();</script>
+</body>
+</html>

@@ -106,6 +106,20 @@ HTML
 The command prints the public URL. Body-only HTML receives the house theme
 automatically.
 
+To inspect the same themed wrapper without logging in, publishing, opening a
+browser, or using the network, render a deterministic self-contained file:
+
+```bash
+waymark preview --title "First report" --output /tmp/first-report.html - <<'HTML'
+<header><h1>First report</h1></header>
+<section><h2>Summary</h2><p>Waymark is ready.</p></section>
+HTML
+```
+
+`preview` validates the same body-only contract as hosted themed pages, embeds
+the built-in stylesheet, and refuses to replace an existing output unless
+`--force` is passed. Parent output directories are created when needed.
+
 ## Agent Skill
 
 The source skill is [`.skills/waymark`](.skills/waymark). From a
@@ -148,6 +162,7 @@ waymark logout
 waymark status
 
 waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
+waymark preview --title TITLE --output FILE [--force] <body-file|->
 waymark list    [--limit N] [--json]
 waymark get     [--json] <id>
 waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
@@ -155,6 +170,7 @@ waymark delete  <id>
 ```
 
 Put flags before positional arguments. Use `-` to read page HTML from stdin.
+`preview` is fully offline and does not read Waymark credentials or configuration.
 
 ## Security Model
 

@@ -10,6 +10,7 @@
 //
 //	waymark login   [--server URL]
 //	waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
+//	waymark preview --title "Title" --output FILE [--force] <file|->
 //	waymark list    [--limit N] [--json]
 //	waymark get     [--json] <id>
 //	waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
@@ -51,6 +52,8 @@ func main() {
 		err = cmdStatus(os.Args[2:])
 	case "create":
 		err = cmdCreate(os.Args[2:])
+	case "preview":
+		err = cmdPreview(os.Args[2:])
 	case "list", "ls":
 		err = cmdList(os.Args[2:])
 	case "get":
@@ -90,6 +93,7 @@ Setup:
 
 Commands:
   create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->   publish a page
+  preview --title "Title" --output FILE [--force] <file|->         render offline HTML
   list    [--limit N] [--json]                                    list pages
   get     [--json] <id>                                           show page metadata
   update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file>]  replace a page
