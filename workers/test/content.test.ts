@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import contentWorker from "../src/content";
 import { createFakeD1, type FakeD1 } from "./fake-d1";
 import { CONTROL_HOST, PUBLIC_HOST, makeContentEnv, request } from "./test-env";
+import { FAVICON_SVG } from "../src/theme.generated";
 import type { BaseEnv } from "../src/types";
 
 let db: FakeD1;
@@ -69,7 +70,7 @@ describe("GET /favicon.svg", () => {
     const res = await contentWorker.fetch(request(PUBLIC_HOST, "/favicon.svg"), env);
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
-    expect(await res.text()).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(await res.text()).toBe(FAVICON_SVG);
   });
 });
 
