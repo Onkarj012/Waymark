@@ -64,6 +64,15 @@ describe("GET /theme.css", () => {
   });
 });
 
+describe("GET /favicon.svg", () => {
+  it("serves the embedded Waymark favicon", async () => {
+    const res = await contentWorker.fetch(request(PUBLIC_HOST, "/favicon.svg"), env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(await res.text()).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+  });
+});
+
 describe("GET /", () => {
   it("returns the plain-text index", async () => {
     const res = await contentWorker.fetch(request(PUBLIC_HOST, "/"), env);

@@ -68,6 +68,14 @@ func TestCreateAndServeThemedPage(t *testing.T) {
 	if !bytes.Contains(page, []byte(`<link rel="stylesheet" href="/theme.css">`)) {
 		t.Fatalf("hosted page did not link /theme.css: %s", page)
 	}
+	if !bytes.Contains(page, []byte(`<link rel="icon" href="/favicon.svg" type="image/svg+xml">`)) {
+		t.Fatalf("hosted page did not link favicon: %s", page)
+	}
+	faviconResp := doRequest(t, h, http.MethodGet, "pages.localhost", "/favicon.svg", nil, nil, "")
+	defer faviconResp.Body.Close()
+	if faviconResp.StatusCode != http.StatusOK || faviconResp.Header.Get("Content-Type") != "image/svg+xml" {
+		t.Fatalf("favicon response = status %d, content type %q", faviconResp.StatusCode, faviconResp.Header.Get("Content-Type"))
+	}
 	if got := pageResp.Header.Get("Referrer-Policy"); got != "no-referrer" {
 		t.Fatalf("Referrer-Policy = %q", got)
 	}

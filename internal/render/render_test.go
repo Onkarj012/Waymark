@@ -11,6 +11,7 @@ func TestHostedPreservesWrapperBehavior(t *testing.T) {
 		`<html lang="en" data-theme="dark">`,
 		`<title>Status &lt;check&gt;</title>`,
 		`<link rel="stylesheet" href="/theme.css">`,
+		`<link rel="icon" href="/favicon.svg" type="image/svg+xml">`,
 		`<section><p>Hello</p></section>`,
 		`<div class="reading-progress" aria-hidden="true"></div>`,
 		`.section-nav a[href^='#']`,
@@ -44,6 +45,9 @@ func TestStandaloneEmbedsCallerCSSCleanly(t *testing.T) {
 	got := Standalone("Preview", "<p>Body</p>", "html { color: red; }")
 	if strings.Contains(got, `href="/theme.css"`) {
 		t.Fatal("standalone output linked hosted stylesheet")
+	}
+	if !strings.Contains(got, `href="data:image/svg+xml;base64,`) {
+		t.Fatal("standalone output missing embedded favicon")
 	}
 	if !strings.Contains(got, "<style>\nhtml { color: red; }\n</style>\n") {
 		t.Fatalf("standalone stylesheet was not embedded cleanly: %s", got)

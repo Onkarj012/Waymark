@@ -11,10 +11,10 @@ import { handleDiscovery } from "./device-api";
 import { getPage, nowIso } from "./store";
 import { renderThemed } from "./render";
 import { NotFoundError, type BaseEnv } from "./types";
-import { THEME_CSS } from "./theme.generated";
+import { FAVICON_SVG, THEME_CSS } from "./theme.generated";
 
 function publicRouteAllowed(pathname: string): boolean {
-  return pathname === "/" || pathname === "/theme.css" || pathname === "/.well-known/waymark" || pathname.startsWith("/p/");
+  return pathname === "/" || pathname === "/theme.css" || pathname === "/favicon.svg" || pathname === "/.well-known/waymark" || pathname.startsWith("/p/");
 }
 
 export default {
@@ -62,6 +62,12 @@ async function route(request: Request, env: BaseEnv, config: BaseWaymarkConfig, 
   if (method === "GET" && pathname === "/theme.css") {
     return new Response(THEME_CSS, {
       headers: { "Content-Type": "text/css; charset=utf-8", "Cache-Control": "public, max-age=3600" },
+    });
+  }
+
+  if (method === "GET" && pathname === "/favicon.svg") {
+    return new Response(FAVICON_SVG, {
+      headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" },
     });
   }
 

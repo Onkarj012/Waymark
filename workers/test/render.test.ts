@@ -14,6 +14,7 @@ describe("renderThemed", () => {
     const html = renderThemed("Status <check>", "<script>window.demo=true</script><p>Hello</p>");
     expect(html).toContain('<html lang="en" data-theme="dark">');
     expect(html).toContain("<title>Status &lt;check&gt;</title>");
+    expect(html).toContain('<link rel="icon" href="/favicon.svg" type="image/svg+xml">');
     expect(html).toContain('<link rel="stylesheet" href="/theme.css">');
     expect(html).toContain("<script>window.demo=true</script><p>Hello</p>");
   });

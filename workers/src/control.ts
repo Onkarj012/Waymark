@@ -31,11 +31,13 @@ import {
 } from "./admin";
 import { runCleanup } from "./cleanup";
 import { nowIso } from "./store";
+import { FAVICON_SVG } from "./theme.generated";
 import type { ControlEnv, Credential } from "./types";
 
 function controlRouteAllowed(pathname: string): boolean {
   return (
     pathname === "/.well-known/waymark" ||
+    pathname === "/favicon.svg" ||
     pathname.startsWith("/api/") ||
     pathname === "/activate" ||
     pathname.startsWith("/admin/")
@@ -129,6 +131,11 @@ async function route(
   if (method === "GET" && pathname === "/healthz") return new Response("ok");
   if (method === "GET" && pathname === "/.well-known/waymark") {
     return handleDiscovery(config.controlUrl, config.publicUrl);
+  }
+  if (method === "GET" && pathname === "/favicon.svg") {
+    return new Response(FAVICON_SVG, {
+      headers: { ...controlSecurityHeaders(), "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" },
+    });
   }
 
   // --- authenticated JSON API ---

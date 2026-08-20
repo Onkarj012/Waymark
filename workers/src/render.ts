@@ -55,6 +55,7 @@ export function renderThemed(title: string, content: string): string {
     `<meta charset="utf-8">\n` +
     `<meta name="viewport" content="width=device-width, initial-scale=1">\n` +
     `<title>${escapeHtml(title)}</title>\n` +
+    `<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n` +
     `<link rel="stylesheet" href="/theme.css">\n` +
     THEME_INIT_SCRIPT +
     `</head>\n<body>\n` +

@@ -3,15 +3,19 @@
 package render
 
 import (
+	"encoding/base64"
 	"fmt"
 	"html"
 	"strings"
+
+	"github.com/Onkarj012/Waymark/theme"
 )
 
 // Hosted wraps body content in the hosted Waymark document, linking the house
 // stylesheet at /theme.css.
 func Hosted(title, content string) string {
 	return themedDocument(title, content, `<link rel="stylesheet" href="/theme.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 `)
 }
 
@@ -25,7 +29,15 @@ func Standalone(title, content, css string) string {
 		stylesheet.WriteByte('\n')
 	}
 	stylesheet.WriteString("</style>\n")
+	stylesheet.WriteString(`<link rel="icon" href="`)
+	stylesheet.WriteString(faviconDataURI())
+	stylesheet.WriteString(`" type="image/svg+xml">
+`)
 	return themedDocument(title, content, stylesheet.String())
+}
+
+func faviconDataURI() string {
+	return "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(theme.FaviconSVG))
 }
 
 // escapeStyleEndTag keeps caller CSS inside the stylesheet element. CSS

@@ -86,6 +86,7 @@ func NewConfigured(st *store.Store, cfg Config) (*Server, error) {
 	// Public.
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 	mux.HandleFunc("GET /theme.css", s.handleThemeCSS)
+	mux.HandleFunc("GET /favicon.svg", s.handleFavicon)
 	mux.HandleFunc("GET /p/{id}", s.handleServePage)
 	mux.HandleFunc("GET /{$}", s.handleIndex)
 	mux.HandleFunc("GET /.well-known/waymark", s.handleDiscovery)
@@ -152,6 +153,12 @@ func (s *Server) handleThemeCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	io.WriteString(w, theme.CSS)
+}
+
+func (s *Server) handleFavicon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	io.WriteString(w, theme.FaviconSVG)
 }
 
 func (s *Server) handleServePage(w http.ResponseWriter, r *http.Request) {
@@ -398,10 +405,10 @@ func (s *Server) routeAllowed(r *http.Request) bool {
 	}
 	host := strings.ToLower(r.Host)
 	if host == strings.ToLower(s.publicHost) {
-		return r.URL.Path == "/" || r.URL.Path == "/theme.css" || r.URL.Path == "/.well-known/waymark" || strings.HasPrefix(r.URL.Path, "/p/")
+		return r.URL.Path == "/" || r.URL.Path == "/theme.css" || r.URL.Path == "/favicon.svg" || r.URL.Path == "/.well-known/waymark" || strings.HasPrefix(r.URL.Path, "/p/")
 	}
 	if host == strings.ToLower(s.controlHost) {
-		return r.URL.Path == "/.well-known/waymark" || strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/activate" || strings.HasPrefix(r.URL.Path, "/admin/")
+		return r.URL.Path == "/favicon.svg" || r.URL.Path == "/.well-known/waymark" || strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/activate" || strings.HasPrefix(r.URL.Path, "/admin/")
 	}
 	return false
 }
