@@ -188,7 +188,7 @@ function pageShell(title: string, content: string): string {
   return (
     `<!doctype html>\n` +
     `<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n` +
-    `<title>${escapeHtml(title)} - Waymark</title><link rel="stylesheet" href="/admin/style.css"></head>\n` +
+    `<title>${escapeHtml(title)} - Waymark</title><link rel="stylesheet" href="/admin/style.css"><link rel="icon" href="/favicon.svg" type="image/svg+xml"></head>\n` +
     `<body><main><header><a href="/admin/tokens">Waymark</a><span>Control</span></header>${content}</main></body></html>`
   );
 }
