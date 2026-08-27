@@ -52,9 +52,9 @@ HTML converts it atomically to raw.
 | `cmd/server/main.go` | server entrypoint: config, expiry sweeper, graceful shutdown |
 | `cmd/waymark/main.go` | CLI commands (`create`/`list`/`get`/`update`/`delete`/`login`/…) |
 | `cmd/waymark/config.go` | CLI token storage and server/token resolution |
-| `internal/render/render.go` | raw complete-document validator and legacy hosted/standalone wrappers |
+| `internal/render/render.go` | raw complete-document validator and legacy hosted wrapper |
 | `internal/store/store.go` | SQLite persistence; `Page`/`Meta` models; CRUD + expiry sweep |
-| `internal/web/server.go` | host gating, scoped auth, themed rendering, JSON handlers |
+| `internal/web/server.go` | host gating, scoped auth, legacy themed rendering, JSON handlers |
 | `internal/web/id.go` | unguessable base62 page IDs (crypto/rand) |
 | `theme/theme.css` | **the** house stylesheet (source of truth) |
 | `theme/theme.go` | `//go:embed theme.css` → `theme.CSS` |
@@ -115,8 +115,8 @@ Inspect the local complete HTML file before publishing. There is no offline
 `preview` command and no `--raw` flag; create always publishes a raw document.
 
 Tests cover CLI credential handling, storage lifecycle and permissions, API
-authentication, raw-document validation, rendering headers, and page-path log
-redaction. Add focused regression tests alongside behavior changes.
+authentication, raw-document validation, public framing headers, and page-path
+log redaction. Add focused regression tests alongside behavior changes.
 
 ## Conventions & invariants — read before changing things
 

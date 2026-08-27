@@ -31,9 +31,11 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	"github.com/Onkarj012/Waymark/internal/render"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -131,6 +133,9 @@ func cmdCreate(args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := render.ValidateRawDocument(body); err != nil {
+		return fmt.Errorf("%s is not a complete self-contained HTML document: %w", file, err)
+	}
 	c, err := newClient(server)
 	if err != nil {
 		return err
@@ -168,6 +173,9 @@ func cmdUpdate(args []string) error {
 		body, err := readInput(file)
 		if err != nil {
 			return err
+		}
+		if err := render.ValidateRawDocument(body); err != nil {
+			return fmt.Errorf("%s is not a complete self-contained HTML document: %w", file, err)
 		}
 		req["html"] = body
 		req["raw"] = true

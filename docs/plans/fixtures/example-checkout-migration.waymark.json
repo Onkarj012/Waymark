@@ -3,6 +3,7 @@
   "status": "draft",
   "title": "Example: checkout service migration",
   "slug": "example-checkout-migration",
+  "format": "raw-self-contained",
   "source_path": "docs/plans/fixtures/example-checkout-migration.md",
   "source_sha256": "17fe7e546f3d9fb57cf5f42eb12cfe998e85ffc9ae48a061b1d2724ef853ff92",
   "html_path": "docs/plans/fixtures/example-checkout-migration.html",

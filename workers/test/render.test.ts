@@ -107,9 +107,14 @@ describe("validateRawDocument", () => {
     expect(
       validateRawDocument(full.replace("<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="https://pages.example/theme.css">`)),
     ).toContain("house theme");
+    expect(validateRawDocument(full.replace("<style>body { margin: 0; }</style>", `<link rel=stylesheet href=/theme.css>`))).toContain("house theme");
     expect(validateRawDocument(validRawDocument(`<article class="plan" data-plan-profile="systems"><p>x</p></article>`))).toContain(
       "data-plan-profile",
     );
+  });
+
+  it("rejects unterminated comments", () => {
+    expect(validateRawDocument(`${validRawDocument()}<!-- unfinished`)).toContain("unterminated comment");
   });
 
   it("ignores data-plan-profile when it only appears inside a stylesheet", () => {

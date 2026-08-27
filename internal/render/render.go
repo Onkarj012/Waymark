@@ -5,12 +5,9 @@
 package render
 
 import (
-	"encoding/base64"
 	"fmt"
 	"html"
 	"strings"
-
-	"github.com/Onkarj012/Waymark/theme"
 )
 
 // Hosted wraps body content in the hosted Waymark document, linking the house
@@ -19,42 +16,6 @@ func Hosted(title, content string) string {
 	return themedDocument(title, content, `<link rel="stylesheet" href="/theme.css">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 `)
-}
-
-// Standalone wraps body content in a self-contained Waymark document using the
-// caller-provided CSS. Callers can pass theme.CSS for the house theme.
-func Standalone(title, content, css string) string {
-	var stylesheet strings.Builder
-	stylesheet.WriteString("<style>\n")
-	stylesheet.WriteString(escapeStyleEndTag(css))
-	if css != "" && !strings.HasSuffix(css, "\n") {
-		stylesheet.WriteByte('\n')
-	}
-	stylesheet.WriteString("</style>\n")
-	stylesheet.WriteString(`<link rel="icon" href="`)
-	stylesheet.WriteString(faviconDataURI())
-	stylesheet.WriteString(`" type="image/svg+xml">
-`)
-	return themedDocument(title, content, stylesheet.String())
-}
-
-func faviconDataURI() string {
-	return "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(theme.FaviconSVG))
-}
-
-// escapeStyleEndTag keeps caller CSS inside the stylesheet element. CSS
-// escapes are understood by the CSS parser, while the HTML parser no longer
-// sees a case-insensitive </style sequence that could terminate the element.
-func escapeStyleEndTag(css string) string {
-	var b strings.Builder
-	for i := 0; i < len(css); i++ {
-		if css[i] == '<' && i+7 <= len(css) && strings.EqualFold(css[i:i+7], "</style") {
-			b.WriteString(`\3c `)
-			continue
-		}
-		b.WriteByte(css[i])
-	}
-	return b.String()
 }
 
 func themedDocument(title, content, stylesheet string) string {
@@ -112,78 +73,6 @@ const readingProgressBar = `<div class="reading-progress" aria-hidden="true"></d
 const sectionNavScript = `<script>(function(){var links=[].slice.call(document.querySelectorAll(".section-nav a[href^='#']")),bar=document.querySelector(".reading-progress");if(!links.length&&!bar)return;var sections=links.map(function(a){return document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));}),list=document.querySelector(".section-nav ul"),current=-1,ticking=false;function paint(i){if(i===current)return;current=i;links.forEach(function(a,n){a.classList.toggle("is-active",n===i);a.classList.toggle("is-read",n<i);if(n===i)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");});if(list)list.style.setProperty("--spine",(links.length>1?i/(links.length-1)*100:100)+"%");}function pick(){var line=innerHeight*.28,best=0,i,s;for(i=0;i<sections.length;i++){s=sections[i];if(s&&s.getBoundingClientRect().top<=line)best=i;}if(sections.length&&innerHeight+scrollY>=document.body.scrollHeight-4)best=sections.length-1;if(links.length)paint(best);if(bar){var max=document.documentElement.scrollHeight-innerHeight;bar.style.width=(max>0?Math.min(100,scrollY/max*100):0)+"%";}}function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){pick();ticking=false;});}addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);pick();})();</script>
 `
 
-var forbiddenThemedElements = map[string]struct{}{
-	"html":   {},
-	"head":   {},
-	"body":   {},
-	"style":  {},
-	"script": {},
-	"link":   {},
-	"base":   {},
-	"meta":   {},
-	"title":  {},
-}
-
-// ValidateThemedBody rejects document-level, style, and script markup that
-// cannot safely live inside the themed document wrapper. Semantic body HTML and
-// inline SVG are permitted.
-func ValidateThemedBody(content string) error {
-	for i := 0; i < len(content); {
-		if content[i] != '<' {
-			i++
-			continue
-		}
-		if strings.HasPrefix(content[i:], "<!--") {
-			if end := strings.Index(content[i+4:], "-->"); end >= 0 {
-				i += 4 + end + 3
-				continue
-			}
-			i += 4
-			continue
-		}
-
-		j := i + 1
-		for j < len(content) && isHTMLSpace(content[j]) {
-			j++
-		}
-		if j < len(content) && content[j] == '!' {
-			j++
-			for j < len(content) && isHTMLSpace(content[j]) {
-				j++
-			}
-			start := j
-			for j < len(content) && isASCIIAlpha(content[j]) {
-				j++
-			}
-			if strings.EqualFold(content[start:j], "doctype") {
-				return fmt.Errorf("themed body must not contain a doctype")
-			}
-			i = scanTagEnd(content, j)
-			continue
-		}
-		if j < len(content) && content[j] == '/' {
-			j++
-			for j < len(content) && isHTMLSpace(content[j]) {
-				j++
-			}
-		}
-		start := j
-		for j < len(content) && (isASCIIAlpha(content[j]) || content[j] >= '0' && content[j] <= '9' || content[j] == '-' || content[j] == ':') {
-			j++
-		}
-		if start == j {
-			i++
-			continue
-		}
-		name := strings.ToLower(content[start:j])
-		if _, forbidden := forbiddenThemedElements[name]; forbidden {
-			return fmt.Errorf("themed body must not contain <%s> elements", name)
-		}
-		i = scanTagEnd(content, j)
-	}
-	return nil
-}
-
 func scanTagEnd(content string, i int) int {
 	var quote byte
 	for i < len(content) {
@@ -239,7 +128,7 @@ func ValidateRawDocument(html string) error {
 				i += 4 + end + 3
 				continue
 			}
-			break
+			return fmt.Errorf("must not contain an unterminated comment")
 		}
 
 		j := i + 1
@@ -398,7 +287,7 @@ func parseTagAttributes(content string, i int) (map[string]string, bool, int) {
 				}
 			} else {
 				from := i
-				for i < len(content) && !isHTMLSpace(content[i]) && content[i] != '>' && content[i] != '/' {
+				for i < len(content) && !isHTMLSpace(content[i]) && content[i] != '>' {
 					i++
 				}
 				value = content[from:i]

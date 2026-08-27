@@ -297,14 +297,14 @@ external system. Following approval it performs only the named actions.
 Create `internal/render` as a deep, standard-library-first module containing
 the themed document wrapper and progressive-enhancement scripts. It exposes:
 
-- a hosted renderer that links `/theme.css` for `internal/web`;
-- a standalone renderer that embeds `theme.CSS` for offline CLI previews;
+- a hosted renderer that links `/theme.css` for legacy reads in `internal/web`;
 - a complete-document validator shared by API and CLI paths.
 
 `internal/web/server.go` becomes a consumer instead of owning private renderer
-constants. `cmd/waymark` imports only `internal/render` and `theme`, preserving
-the CLI's no-SQLite/no-cgo dependency boundary. Workers continue to mirror the
-wrapper in TypeScript, with parity assertions in both test suites.
+constants. `cmd/waymark` imports `internal/render` for local raw-document
+validation while preserving its no-SQLite/no-cgo dependency boundary. Workers
+continue to mirror the wrapper in TypeScript, with parity assertions in both test
+suites.
 
 ### Dark-first selection
 
@@ -409,8 +409,8 @@ newer instruction.
 
 1. Move the Go document wrapper, toggle, progress, and section-navigation
    markup/scripts into `internal/render`.
-2. Provide hosted and standalone render entry points without importing store or
-   SQLite code.
+2. Provide hosted legacy rendering and complete-document validation without
+   importing store or SQLite code.
 3. Change first-visit behavior to dark; retain and test persisted light.
 4. Remove OS-preference switching from Go, Workers, and the demo.
 5. Keep Worker output behaviorally equivalent and retain comments identifying

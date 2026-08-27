@@ -97,6 +97,12 @@ func TestCreateAndServeRawPage(t *testing.T) {
 	if got := pageResp.Header.Get("X-Content-Type-Options"); got != "nosniff" {
 		t.Fatalf("X-Content-Type-Options = %q", got)
 	}
+	if got := pageResp.Header.Get("Content-Security-Policy"); got != "frame-ancestors 'none'" {
+		t.Fatalf("Content-Security-Policy = %q", got)
+	}
+	if got := pageResp.Header.Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q", got)
+	}
 }
 
 func TestServeLegacyThemedPageAndThemeCSS(t *testing.T) {
@@ -130,6 +136,12 @@ func TestServeLegacyThemedPageAndThemeCSS(t *testing.T) {
 	}
 	if !bytes.Contains(page, []byte(`<link rel="stylesheet" href="/theme.css">`)) {
 		t.Fatalf("legacy themed page did not link /theme.css: %s", page)
+	}
+	if got := pageResp.Header.Get("Content-Security-Policy"); got != "frame-ancestors 'none'" {
+		t.Fatalf("Content-Security-Policy = %q", got)
+	}
+	if got := pageResp.Header.Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q", got)
 	}
 	themeResp := doRequest(t, h, http.MethodGet, "pages.localhost", "/theme.css", nil, nil, "")
 	defer themeResp.Body.Close()

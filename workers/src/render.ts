@@ -104,7 +104,7 @@ function parseTagAttributes(content: string, i: number): { attrs: Record<string,
         if (i < content.length) i++;
       } else {
         const from = i;
-        while (i < content.length && !isHTMLSpace(content[i]) && content[i] !== ">" && content[i] !== "/") i++;
+        while (i < content.length && !isHTMLSpace(content[i]) && content[i] !== ">") i++;
         value = content.slice(from, i);
       }
     }
@@ -164,7 +164,7 @@ export function validateRawDocument(html: string): string | null {
         i = end + 3;
         continue;
       }
-      break;
+      return "must not contain an unterminated comment";
     }
 
     let j = i + 1;

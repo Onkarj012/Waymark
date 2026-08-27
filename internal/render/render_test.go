@@ -41,60 +41,6 @@ func TestHostedThemeSelectionIsDarkFirstAndHonorsStoredLight(t *testing.T) {
 	}
 }
 
-func TestStandaloneEmbedsCallerCSSCleanly(t *testing.T) {
-	got := Standalone("Preview", "<p>Body</p>", "html { color: red; }")
-	if strings.Contains(got, `href="/theme.css"`) {
-		t.Fatal("standalone output linked hosted stylesheet")
-	}
-	if !strings.Contains(got, `href="data:image/svg+xml;base64,`) {
-		t.Fatal("standalone output missing embedded favicon")
-	}
-	if !strings.Contains(got, "<style>\nhtml { color: red; }\n</style>\n") {
-		t.Fatalf("standalone stylesheet was not embedded cleanly: %s", got)
-	}
-}
-
-func TestStandaloneEscapesCaseInsensitiveStyleEndTagInCallerCSS(t *testing.T) {
-	got := Standalone("Preview", "<p>Body</p>", `.x::after { content: "</StYlE><script>bad</script>"; }`)
-	if strings.Count(strings.ToLower(got), "</style>") != 1 {
-		t.Fatal("caller CSS added an extra style end tag to standalone output")
-	}
-	if !strings.Contains(got, `\3c /StYlE`) {
-		t.Fatalf("caller CSS was not safely escaped: %s", got)
-	}
-}
-
-func TestValidateThemedBody(t *testing.T) {
-	for _, content := range []string{
-		`<article><header><h1>Plan</h1></header><section><p>Body</p></section></article>`,
-		`<figure><svg viewBox="0 0 10 10"><path d="M0 0L10 10"></path></svg></figure>`,
-		`<p data-example="<script>">Text mentioning &lt;html&gt;</p>`,
-		`<!-- <script> is discussed here --><p>Safe</p>`,
-		`<!-- unfinished comment`,
-	} {
-		if err := ValidateThemedBody(content); err != nil {
-			t.Errorf("ValidateThemedBody(%q) = %v", content, err)
-		}
-	}
-
-	for _, content := range []string{
-		`<!DOCTYPE html><p>Body</p>`,
-		`<HTML><body>Body</body></HTML>`,
-		`<head><title>x</title></head>`,
-		`<body>Body</body>`,
-		`<style>.x{}</style>`,
-		`<script>alert(1)</script>`,
-		`<link rel="stylesheet" href="evil.css">`,
-		`<base href="https://evil.example/">`,
-		`<meta http-equiv="refresh" content="0;url=https://evil.example/">`,
-		`<title>Title</title>`,
-	} {
-		if err := ValidateThemedBody(content); err == nil {
-			t.Errorf("ValidateThemedBody(%q) unexpectedly succeeded", content)
-		}
-	}
-}
-
 func validRawDocument(inner string) string {
 	return `<!DOCTYPE html>
 <html lang="en">
@@ -142,6 +88,7 @@ func TestValidateRawDocumentRequiresDocumentStructure(t *testing.T) {
 		{"house theme link", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="/theme.css">`, 1), "house theme"},
 		{"relative house theme", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="theme.css">`, 1), "house theme"},
 		{"absolute house theme", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="https://pages.example/theme.css">`, 1), "house theme"},
+		{"unquoted house theme", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel=stylesheet href=/theme.css>`, 1), "house theme"},
 		{"plan profile", validRawDocument(`<article class="plan" data-plan-profile="systems"><p>x</p></article>`), "data-plan-profile"},
 	}
 	for _, tc := range cases {
@@ -154,6 +101,13 @@ func TestValidateRawDocumentRequiresDocumentStructure(t *testing.T) {
 				t.Fatalf("error %q does not contain %q", err, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestValidateRawDocumentRejectsUnterminatedComments(t *testing.T) {
+	html := validRawDocument("<p>Hi</p>") + "<!-- unfinished"
+	if err := ValidateRawDocument(html); err == nil || !strings.Contains(err.Error(), "unterminated comment") {
+		t.Fatalf("ValidateRawDocument() = %v, want unterminated comment error", err)
 	}
 }
 

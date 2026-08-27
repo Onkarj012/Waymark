@@ -97,6 +97,8 @@ async function servePage(env: BaseEnv, id: string): Promise<Response> {
     "Content-Type": "text/html; charset=utf-8",
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "X-Frame-Options": "DENY",
   };
   if (page.raw) return new Response(page.html, { headers });
   return new Response(renderThemed(page.title, page.html), { headers });

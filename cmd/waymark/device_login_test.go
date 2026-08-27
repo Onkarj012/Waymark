@@ -79,7 +79,8 @@ func TestNormalizeServerURLAcceptsLocalhostSubdomain(t *testing.T) {
 
 func TestUpdateSendsIfUpdatedAtPrecondition(t *testing.T) {
 	bodyPath := filepath.Join(t.TempDir(), "body.html")
-	if err := os.WriteFile(bodyPath, []byte("<p>updated</p>"), 0o644); err != nil {
+	body := `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><title>Updated</title><style>body{}</style></head><body><p>updated</p></body></html>`
+	if err := os.WriteFile(bodyPath, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("WAYMARK_TOKEN", "test-token")
@@ -99,7 +100,7 @@ func TestUpdateSendsIfUpdatedAtPrecondition(t *testing.T) {
 		if request["raw"] != true {
 			t.Fatalf("raw = %#v, want true when replacement HTML is sent", request["raw"])
 		}
-		if request["html"] != "<p>updated</p>" {
+		if request["html"] != body {
 			t.Fatalf("html = %#v", request["html"])
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -156,7 +157,8 @@ func TestLoginRejectsRemovedLegacyFlags(t *testing.T) {
 
 func TestCreateAlwaysSendsRawTrueAndRejectsRawFlag(t *testing.T) {
 	htmlPath := filepath.Join(t.TempDir(), "page.html")
-	if err := os.WriteFile(htmlPath, []byte("<!DOCTYPE html><html></html>"), 0o644); err != nil {
+	html := `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><title>Report</title><style>body{}</style></head><body><p>Report</p></body></html>`
+	if err := os.WriteFile(htmlPath, []byte(html), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("WAYMARK_TOKEN", "test-token")
@@ -187,6 +189,27 @@ func TestCreateAlwaysSendsRawTrueAndRejectsRawFlag(t *testing.T) {
 	}
 	if err := cmdCreate([]string{"--server", server.URL, "--title", "Report", "--raw", htmlPath}); err == nil {
 		t.Fatal("cmdCreate(--raw) succeeded; want unknown flag")
+	}
+}
+
+func TestCreateAndUpdateRejectInvalidRawHTMLLocally(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fragment.html")
+	if err := os.WriteFile(path, []byte("<p>fragment</p>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"--server", "http://127.0.0.1:1", "--title", "Bad", path},
+		{"--server", "http://127.0.0.1:1", "page1", path},
+	} {
+		err := func() error {
+			if len(args) == 4 && args[2] == "page1" {
+				return cmdUpdate(args)
+			}
+			return cmdCreate(args)
+		}()
+		if err == nil || !strings.Contains(err.Error(), "fragment.html is not a complete self-contained HTML document") {
+			t.Fatalf("args %v error = %v", args, err)
+		}
 	}
 }
 

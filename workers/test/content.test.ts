@@ -115,6 +115,8 @@ describe("GET /p/{id}", () => {
     expect(html).toContain("<script>window.demo=true</script>");
     expect(res.headers.get("Referrer-Policy")).toBe("no-referrer");
     expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
+    expect(res.headers.get("X-Frame-Options")).toBe("DENY");
   });
 
   it("serves a raw page verbatim with no theme wrapping", async () => {
@@ -122,6 +124,8 @@ describe("GET /p/{id}", () => {
     const res = await contentWorker.fetch(request(PUBLIC_HOST, `/p/${page.id}`), env);
     const html = await res.text();
     expect(html).toBe("<!doctype html><html><body>raw</body></html>");
+    expect(res.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'none'");
+    expect(res.headers.get("X-Frame-Options")).toBe("DENY");
   });
 
   it("404s for a missing page", async () => {
