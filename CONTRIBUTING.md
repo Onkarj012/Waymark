@@ -1,7 +1,7 @@
 # Contributing
 
 Waymark is intentionally small. Prefer focused changes that preserve the
-single-binary server, SQLite storage, themed-versus-raw contract, and agent-
+single-binary server, SQLite storage, raw-only write contract, and agent-
 friendly CLI behavior.
 
 ## Setup

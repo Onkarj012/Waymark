@@ -21,9 +21,9 @@ var ErrNotFound = errors.New("page not found")
 // expected updated_at value.
 var ErrConflict = errors.New("page update conflict")
 
-// Page is a stored page. For themed pages, HTML holds the body content that the
-// server wraps in the house theme; for raw pages, HTML is a complete document
-// served verbatim.
+// Page is a stored page. New pages are raw: HTML is a complete document served
+// verbatim. Legacy themed pages store body content that the server still wraps
+// in the house theme.
 type Page struct {
 	ID        string
 	Title     string

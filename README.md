@@ -92,33 +92,33 @@ container via the `Dockerfile` for anyone self-hosting outside Cloudflare.
 
 ```bash
 waymark create --title "First report" - <<'HTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First report</title>
+<style>
+body { font-family: sans-serif; margin: 2rem; line-height: 1.5; }
+</style>
+</head>
+<body>
 <header>
   <h1>First report</h1>
-  <p class="dek">A small report published from the command line.</p>
+  <p>A small report published from the command line.</p>
 </header>
 <section>
   <h2>Summary</h2>
   <p>Waymark is ready.</p>
 </section>
+</body>
+</html>
 HTML
 ```
 
-The command prints the public URL. Body-only HTML receives the house theme
-automatically.
-
-To inspect the same themed wrapper without logging in, publishing, opening a
-browser, or using the network, render a deterministic self-contained file:
-
-```bash
-waymark preview --title "First report" --output /tmp/first-report.html - <<'HTML'
-<header><h1>First report</h1></header>
-<section><h2>Summary</h2><p>Waymark is ready.</p></section>
-HTML
-```
-
-`preview` validates the same body-only contract as hosted themed pages, embeds
-the built-in stylesheet, and refuses to replace an existing output unless
-`--force` is passed. Parent output directories are created when needed.
+The command prints the public URL. The file must be a complete, self-contained
+HTML document; Waymark stores and serves it verbatim. Inspect the local file
+before publishing.
 
 ## Agent Skill
 
@@ -137,8 +137,8 @@ with `~/.codex/skills` or `~/.claude/skills`. The committed
 `.claude/skills/waymark` symlink also makes the skill available to Claude
 Code while working in this repository.
 
-The skill treats the theme as a flexible component vocabulary. Semantic HTML
-works without a fixed report template.
+The skill publishes complete HTML documents. Semantic HTML with an embedded
+stylesheet is the contract; there is no body-only themed create path.
 
 ## How It Works
 
@@ -151,8 +151,8 @@ works without a fixed report template.
   Cloudflare Workers + D1 — same routes, same CLI, same theme.
 - `.skills/waymark` teaches agents how to publish accessible reports.
 
-Themed pages store body HTML and are wrapped by the server. Raw pages store and
-serve a complete document verbatim.
+New pages store and serve a complete document verbatim. Legacy themed pages
+still wrap stored body HTML with the house theme.
 
 ## CLI
 
@@ -161,16 +161,15 @@ waymark login   [--server URL] [--device-name NAME] [--read-only]
 waymark logout
 waymark status
 
-waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
-waymark preview --title TITLE --output FILE [--force] <body-file|->
+waymark create  --title "Title" [--slug s] [--ttl N] <file|->
 waymark list    [--limit N] [--json]
 waymark get     [--json] <id>
-waymark update  [--title T] [--slug s] [--raw] [--ttl N] <id> [<file|->]
+waymark update  [--title T] [--slug s] [--ttl N] <id> [<file|->]
 waymark delete  <id>
 ```
 
 Put flags before positional arguments. Use `-` to read page HTML from stdin.
-`preview` is fully offline and does not read Waymark credentials or configuration.
+The file must be a complete HTML document.
 
 ## Security Model
 

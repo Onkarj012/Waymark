@@ -16,7 +16,7 @@ Until the first tagged release, only the latest commit on `main` is supported.
 ## Content Trust Model
 
 Waymark stores and serves publisher-supplied HTML. It does not sanitize
-themed body content, and raw pages may contain JavaScript. Treat publishing
+HTML, and raw pages may contain JavaScript. Treat publishing
 credentials as trusted-code-authority for the page origin.
 
 Public page URLs are unguessable but are not access control. Anyone with a URL

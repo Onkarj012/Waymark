@@ -1,5 +1,7 @@
-// Package render builds Waymark themed HTML documents and validates body-only
-// HTML intended for those documents.
+// Package render builds Waymark documents and validates publisher HTML.
+//
+// New pages are complete raw documents. Hosted() still wraps legacy themed
+// body HTML for stored pages that predate the raw-only write contract.
 package render
 
 import (
@@ -209,4 +211,235 @@ func isHTMLSpace(c byte) bool {
 
 func isASCIIAlpha(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+}
+
+// ValidateRawDocument checks that html is a complete, self-contained document:
+// doctype, html, head, viewport meta, title, style, and body are required.
+// House-theme stylesheet links and data-plan-profile attributes are rejected.
+func ValidateRawDocument(html string) error {
+	var (
+		sawDoctype  bool
+		sawHTML     bool
+		sawHead     bool
+		sawViewport bool
+		sawTitle    bool
+		sawStyle    bool
+		sawBody     bool
+		inHTML      bool
+		inHead      bool
+	)
+
+	for i := 0; i < len(html); {
+		if html[i] != '<' {
+			i++
+			continue
+		}
+		if strings.HasPrefix(html[i:], "<!--") {
+			if end := strings.Index(html[i+4:], "-->"); end >= 0 {
+				i += 4 + end + 3
+				continue
+			}
+			break
+		}
+
+		j := i + 1
+		for j < len(html) && isHTMLSpace(html[j]) {
+			j++
+		}
+		if j < len(html) && html[j] == '!' {
+			j++
+			for j < len(html) && isHTMLSpace(html[j]) {
+				j++
+			}
+			start := j
+			for j < len(html) && isASCIIAlpha(html[j]) {
+				j++
+			}
+			if strings.EqualFold(html[start:j], "doctype") {
+				sawDoctype = true
+			}
+			i = scanTagEnd(html, j)
+			continue
+		}
+
+		closing := false
+		if j < len(html) && html[j] == '/' {
+			closing = true
+			j++
+			for j < len(html) && isHTMLSpace(html[j]) {
+				j++
+			}
+		}
+		start := j
+		for j < len(html) && (isASCIIAlpha(html[j]) || html[j] >= '0' && html[j] <= '9' || html[j] == '-' || html[j] == ':') {
+			j++
+		}
+		if start == j {
+			i++
+			continue
+		}
+		name := strings.ToLower(html[start:j])
+		attrs, selfClosing, end := parseTagAttributes(html, j)
+		if hasPlanProfile(attrs) {
+			return fmt.Errorf("must not contain data-plan-profile")
+		}
+		if closing {
+			switch name {
+			case "html":
+				inHTML = false
+			case "head":
+				inHead = false
+			}
+			i = end
+			continue
+		}
+
+		switch name {
+		case "html":
+			sawHTML = true
+			inHTML = true
+		case "head":
+			sawHead = true
+			if inHTML {
+				inHead = true
+			}
+		case "body":
+			sawBody = true
+			inHead = false
+		case "title":
+			if inHead {
+				sawTitle = true
+			}
+		case "style":
+			if inHead {
+				sawStyle = true
+			}
+		case "meta":
+			if inHead && isViewportMeta(attrs) {
+				sawViewport = true
+			}
+		case "link":
+			if isHouseThemeHref(attrs["href"]) {
+				return fmt.Errorf("must not link the house theme")
+			}
+		}
+
+		i = end
+		if !closing && !selfClosing && (name == "style" || name == "script") {
+			i = skipToEndTag(html, i, name)
+		}
+	}
+
+	switch {
+	case !sawDoctype:
+		return fmt.Errorf("must contain a doctype")
+	case !sawHTML:
+		return fmt.Errorf("must contain an <html> element")
+	case !sawHead:
+		return fmt.Errorf("must contain a <head> element")
+	case !sawViewport:
+		return fmt.Errorf("must contain a viewport meta tag")
+	case !sawTitle:
+		return fmt.Errorf("must contain a <title> element")
+	case !sawStyle:
+		return fmt.Errorf("must contain a <style> element")
+	case !sawBody:
+		return fmt.Errorf("must contain a <body> element")
+	}
+	return nil
+}
+
+func parseTagAttributes(content string, i int) (map[string]string, bool, int) {
+	attrs := map[string]string{}
+	selfClosing := false
+	for i < len(content) {
+		for i < len(content) && isHTMLSpace(content[i]) {
+			i++
+		}
+		if i >= len(content) {
+			break
+		}
+		if content[i] == '>' {
+			return attrs, selfClosing, i + 1
+		}
+		if content[i] == '/' {
+			selfClosing = true
+			i++
+			continue
+		}
+		start := i
+		for i < len(content) && !isHTMLSpace(content[i]) && content[i] != '=' && content[i] != '>' && content[i] != '/' {
+			i++
+		}
+		if start == i {
+			i++
+			continue
+		}
+		key := strings.ToLower(content[start:i])
+		for i < len(content) && isHTMLSpace(content[i]) {
+			i++
+		}
+		value := ""
+		if i < len(content) && content[i] == '=' {
+			i++
+			for i < len(content) && isHTMLSpace(content[i]) {
+				i++
+			}
+			if i < len(content) && (content[i] == '"' || content[i] == '\'') {
+				quote := content[i]
+				i++
+				from := i
+				for i < len(content) && content[i] != quote {
+					i++
+				}
+				value = content[from:i]
+				if i < len(content) {
+					i++
+				}
+			} else {
+				from := i
+				for i < len(content) && !isHTMLSpace(content[i]) && content[i] != '>' && content[i] != '/' {
+					i++
+				}
+				value = content[from:i]
+			}
+		}
+		attrs[key] = value
+	}
+	return attrs, selfClosing, len(content)
+}
+
+func skipToEndTag(content string, i int, name string) int {
+	end := "</" + name
+	for i < len(content) {
+		if content[i] == '<' && i+len(end) <= len(content) && strings.EqualFold(content[i:i+len(end)], end) {
+			return scanTagEnd(content, i+len(end))
+		}
+		i++
+	}
+	return len(content)
+}
+
+func hasPlanProfile(attrs map[string]string) bool {
+	_, ok := attrs["data-plan-profile"]
+	return ok
+}
+
+func isViewportMeta(attrs map[string]string) bool {
+	if !strings.EqualFold(strings.TrimSpace(attrs["name"]), "viewport") {
+		return false
+	}
+	return strings.Contains(strings.ToLower(attrs["content"]), "width=device-width")
+}
+
+func isHouseThemeHref(href string) bool {
+	href = strings.TrimSpace(href)
+	if href == "" {
+		return false
+	}
+	if i := strings.IndexAny(href, "?#"); i >= 0 {
+		href = href[:i]
+	}
+	lower := strings.ToLower(href)
+	return lower == "/theme.css" || lower == "theme.css" || strings.HasSuffix(lower, "/theme.css")
 }

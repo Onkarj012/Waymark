@@ -1,5 +1,9 @@
 # Theme Components
 
+> Archived. Waymark now publishes complete self-contained HTML only. This
+> themed body-only component grammar is not part of the live publishing
+> contract.
+
 Use this reference when composing themed HTML. Components are an optional
 vocabulary, not a page template: choose the smallest structure that improves
 comprehension. Semantic source order, visible labels, and textual equivalents

@@ -14,6 +14,22 @@ import {
 } from "./test-env";
 import type { ControlEnv } from "../src/types";
 
+function validRawDocument(inner = "<p>Hi</p>", title = "Title"): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>body { margin: 0; }</style>
+</head>
+<body>
+${inner}
+</body>
+</html>
+`;
+}
+
 let db: FakeD1;
 let env: ControlEnv;
 
@@ -165,7 +181,7 @@ describe("device authorization end-to-end", () => {
       request(CONTROL_HOST, "/api/pages", {
         method: "POST",
         headers: { Authorization: `Bearer ${issued.access_token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Hi", html: "<p>hi</p>" }),
+        body: JSON.stringify({ title: "Hi", html: validRawDocument("<p>hi</p>", "Hi"), raw: true }),
       }),
       env,
     );
@@ -225,7 +241,7 @@ describe("device authorization end-to-end", () => {
       request(CONTROL_HOST, "/api/pages", {
         method: "POST",
         headers: { Authorization: `Bearer ${issued.access_token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Hi", html: "<p>hi</p>" }),
+        body: JSON.stringify({ title: "Hi", html: validRawDocument("<p>hi</p>", "Hi"), raw: true }),
       }),
       env,
     );

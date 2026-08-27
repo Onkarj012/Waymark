@@ -6,6 +6,7 @@
 import { BodyTooLargeError, checkFieldTypes, decodeStrict, isSet, readBodyText, type FieldType } from "./body";
 import { errJson, json } from "./http";
 import { newId } from "./id";
+import { validateRawDocument } from "./render";
 import { ConflictError, NotFoundError, type D1Like, type Page, type PageMeta } from "./types";
 import { createPage, deletePage, getPage, listPages, nowIso, savePage, savePageIfUpdatedAt } from "./store";
 
@@ -105,6 +106,9 @@ export async function handleCreate(db: D1Like, publicUrl: string, request: Reque
   if (!title) return errJson(400, "title is required");
   const html = typeof data.html === "string" ? data.html : "";
   if (!html.trim()) return errJson(400, "html is required");
+  if (data.raw !== true) return errJson(400, "raw:true is required");
+  const invalid = validateRawDocument(html);
+  if (invalid) return errJson(400, "invalid raw HTML: " + invalid);
 
   const now = nowIso();
   const page: Page = {
@@ -112,7 +116,7 @@ export async function handleCreate(db: D1Like, publicUrl: string, request: Reque
     title,
     slug: (typeof data.slug === "string" ? data.slug : "").trim(),
     html,
-    raw: data.raw === true,
+    raw: true,
     createdAt: now,
     updatedAt: now,
     expiresAt: ttlToExpiry(now, typeof data.ttl_days === "number" ? data.ttl_days : undefined),
@@ -198,13 +202,19 @@ export async function handleUpdate(
   if (isSet(data, "slug")) {
     page.slug = (data.slug as string).trim();
   }
+  if (isSet(data, "raw") && data.raw === false) {
+    return errJson(400, "raw cannot be false");
+  }
+  if (isSet(data, "raw") && data.raw === true && !isSet(data, "html")) {
+    return errJson(400, "raw:true requires html");
+  }
   if (isSet(data, "html")) {
     const h = data.html as string;
     if (!h.trim()) return errJson(400, "html cannot be empty");
+    const invalid = validateRawDocument(h);
+    if (invalid) return errJson(400, "invalid raw HTML: " + invalid);
     page.html = h;
-  }
-  if (isSet(data, "raw")) {
-    page.raw = data.raw as boolean;
+    page.raw = true;
   }
   const now = nextUpdatedAt(nowIso(), page.updatedAt);
   if (isSet(data, "ttl_days")) {

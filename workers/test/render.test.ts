@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, renderThemed } from "../src/render";
+import { escapeHtml, renderThemed, validateRawDocument } from "../src/render";
+
+function validRawDocument(inner = "<p>Hi</p>", title = "Title"): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>body { margin: 0; }</style>
+</head>
+<body>
+${inner}
+</body>
+</html>
+`;
+}
 
 describe("escapeHtml", () => {
   it("escapes & ' < > \" like Go's html.EscapeString", () => {
@@ -47,5 +63,57 @@ describe("renderThemed", () => {
     expect(html).toContain('setProperty("--spine"');
     // the script runs after the content it observes
     expect(html.indexOf("<p>Body</p>")).toBeLessThan(html.indexOf('"is-active"'));
+  });
+});
+
+describe("validateRawDocument", () => {
+  it("accepts a complete self-contained document", () => {
+    expect(validateRawDocument(validRawDocument())).toBeNull();
+    expect(validateRawDocument(validRawDocument("<article class=\"plan\"><p>x</p></article>"))).toBeNull();
+    expect(validateRawDocument(validRawDocument("<!-- note --><p>Safe</p>"))).toBeNull();
+  });
+
+  it("requires doctype, html, head, viewport, title, style, and body", () => {
+    const full = validRawDocument();
+    const cases: Array<[string, string, string]> = [
+      ["doctype", full.replace("<!DOCTYPE html>", ""), "doctype"],
+      ["html", full.replace('<html lang="en">', "").replace("</html>", ""), "<html>"],
+      ["head", full.replace("<head>", "").replace("</head>\n", ""), "<head>"],
+      ["viewport", full.replace('<meta name="viewport" content="width=device-width, initial-scale=1">', ""), "viewport"],
+      ["title", full.replace("<title>Title</title>", ""), "<title>"],
+      ["style", full.replace("<style>body { margin: 0; }</style>", ""), "<style>"],
+      ["body", full.replace("<body>\n", "").replace("\n</body>", ""), "<body>"],
+      [
+        "style in body",
+        `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><title>T</title></head><body><style>x{}</style></body></html>`,
+        "<style>",
+      ],
+    ];
+    for (const [name, html, want] of cases) {
+      const err = validateRawDocument(html);
+      expect(err, name).toBeTruthy();
+      expect(err, name).toContain(want);
+    }
+  });
+
+  it("rejects house-theme links and data-plan-profile attributes", () => {
+    const full = validRawDocument();
+    expect(validateRawDocument(full.replace("<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="/theme.css">`))).toContain(
+      "house theme",
+    );
+    expect(validateRawDocument(full.replace("<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="theme.css">`))).toContain(
+      "house theme",
+    );
+    expect(
+      validateRawDocument(full.replace("<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="https://pages.example/theme.css">`)),
+    ).toContain("house theme");
+    expect(validateRawDocument(validRawDocument(`<article class="plan" data-plan-profile="systems"><p>x</p></article>`))).toContain(
+      "data-plan-profile",
+    );
+  });
+
+  it("ignores data-plan-profile when it only appears inside a stylesheet", () => {
+    const html = validRawDocument().replace("body { margin: 0; }", "article.plan[data-plan-profile] { color: red; }");
+    expect(validateRawDocument(html)).toBeNull();
   });
 });

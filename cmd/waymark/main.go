@@ -9,11 +9,10 @@
 // Usage:
 //
 //	waymark login   [--server URL]
-//	waymark create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->
-//	waymark preview --title "Title" --output FILE [--force] <file|->
+//	waymark create  --title "Title" [--slug s] [--ttl N] <file|->
 //	waymark list    [--limit N] [--json]
 //	waymark get     [--json] <id>
-//	waymark update  [--title T] [--slug s] [--raw] [--ttl N] [--if-updated-at RFC3339] <id> [<file|->]
+//	waymark update  [--title T] [--slug s] [--ttl N] [--if-updated-at RFC3339] <id> [<file|->]
 //	waymark delete  <id>
 //	waymark version
 package main
@@ -52,8 +51,6 @@ func main() {
 		err = cmdStatus(os.Args[2:])
 	case "create":
 		err = cmdCreate(os.Args[2:])
-	case "preview":
-		err = cmdPreview(os.Args[2:])
 	case "list", "ls":
 		err = cmdList(os.Args[2:])
 	case "get":
@@ -92,11 +89,10 @@ Setup:
   status                            verify authentication and show token metadata
 
 Commands:
-  create  --title "Title" [--slug s] [--raw] [--ttl N] <file|->   publish a page
-  preview --title "Title" --output FILE [--force] <file|->         render offline HTML
+  create  --title "Title" [--slug s] [--ttl N] <file|->           publish a page
   list    [--limit N] [--json]                                    list pages
   get     [--json] <id>                                           show page metadata
-  update  [--title T] [--slug s] [--raw] [--ttl N] [--if-updated-at RFC3339] <id> [<file>]  replace a page
+  update  [--title T] [--slug s] [--ttl N] [--if-updated-at RFC3339] <id> [<file>]  replace a page
   delete  <id>                                                    delete a page
   version                                                         print version
 
@@ -104,8 +100,8 @@ Auth:
   Normal login prints a browser verification URL and waits for owner approval.
 
 Notes:
-  • By default the file is body content wrapped in the house theme. Pass --raw
-    to serve a complete HTML document verbatim (no theme).
+  • The file must be a complete, self-contained HTML document (doctype, html,
+    head with viewport/title/style, and body). It is stored and served verbatim.
   • --ttl N auto-deletes the page after N days (0 = never).
   • Put flags before positional arguments.
 `)
@@ -117,7 +113,6 @@ func cmdCreate(args []string) error {
 	fs := flag.NewFlagSet("create", flag.ContinueOnError)
 	title := fs.String("title", "", "page title (required)")
 	slug := fs.String("slug", "", "optional human label")
-	raw := fs.Bool("raw", false, "serve as a complete HTML document (no house theme)")
 	ttl := fs.Int("ttl", 0, "auto-delete after N days (0 = never)")
 	jsonOut := fs.Bool("json", false, "print the raw JSON response")
 	server := commonFlags(fs)
@@ -141,7 +136,7 @@ func cmdCreate(args []string) error {
 		return err
 	}
 
-	req := map[string]any{"title": *title, "slug": *slug, "html": body, "raw": *raw, "ttl_days": *ttl}
+	req := map[string]any{"title": *title, "slug": *slug, "html": body, "raw": true, "ttl_days": *ttl}
 	var resp pageResp
 	if err := c.do(http.MethodPost, "/api/pages", req, &resp); err != nil {
 		return err
@@ -153,7 +148,6 @@ func cmdUpdate(args []string) error {
 	fs := flag.NewFlagSet("update", flag.ContinueOnError)
 	title := fs.String("title", "", "new title")
 	slug := fs.String("slug", "", "new slug")
-	raw := fs.Bool("raw", false, "serve as a complete HTML document (no house theme)")
 	ttl := fs.Int("ttl", 0, "auto-delete after N days (0 = never)")
 	ifUpdatedAt := fs.String("if-updated-at", "", "only update if updated_at still matches this RFC3339 timestamp")
 	jsonOut := fs.Bool("json", false, "print the raw JSON response")
@@ -176,15 +170,13 @@ func cmdUpdate(args []string) error {
 			return err
 		}
 		req["html"] = body
+		req["raw"] = true
 	}
 	if set["title"] {
 		req["title"] = *title
 	}
 	if set["slug"] {
 		req["slug"] = *slug
-	}
-	if set["raw"] {
-		req["raw"] = *raw
 	}
 	if set["ttl"] {
 		req["ttl_days"] = *ttl
@@ -193,7 +185,7 @@ func cmdUpdate(args []string) error {
 		req["if_updated_at"] = *ifUpdatedAt
 	}
 	if len(req) == 0 || (len(req) == 1 && set["if-updated-at"]) {
-		return errors.New("nothing to update: pass a <file> and/or --title/--slug/--raw/--ttl")
+		return errors.New("nothing to update: pass a <file> and/or --title/--slug/--ttl")
 	}
 
 	c, err := newClient(server)

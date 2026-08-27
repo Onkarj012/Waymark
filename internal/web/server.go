@@ -193,7 +193,7 @@ type createReq struct {
 	Title   string `json:"title"`
 	Slug    string `json:"slug,omitempty"`
 	HTML    string `json:"html"`
-	Raw     bool   `json:"raw,omitempty"`
+	Raw     *bool  `json:"raw"`
 	TTLDays int    `json:"ttl_days,omitempty"`
 }
 
@@ -234,13 +234,21 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, http.StatusBadRequest, "html is required")
 		return
 	}
+	if req.Raw == nil || !*req.Raw {
+		s.writeErr(w, http.StatusBadRequest, "raw:true is required")
+		return
+	}
+	if err := render.ValidateRawDocument(req.HTML); err != nil {
+		s.writeErr(w, http.StatusBadRequest, "invalid raw HTML: "+err.Error())
+		return
+	}
 
 	now := s.now().UTC()
 	p := &store.Page{
 		Title:     req.Title,
 		Slug:      strings.TrimSpace(req.Slug),
 		HTML:      req.HTML,
-		Raw:       req.Raw,
+		Raw:       true,
 		CreatedAt: now,
 		UpdatedAt: now,
 		ExpiresAt: ttlToExpiry(now, req.TTLDays),
@@ -335,15 +343,25 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if req.Slug != nil {
 		p.Slug = strings.TrimSpace(*req.Slug)
 	}
+	if req.Raw != nil && !*req.Raw {
+		s.writeErr(w, http.StatusBadRequest, "raw cannot be false")
+		return
+	}
+	if req.Raw != nil && *req.Raw && req.HTML == nil {
+		s.writeErr(w, http.StatusBadRequest, "raw:true requires html")
+		return
+	}
 	if req.HTML != nil {
 		if strings.TrimSpace(*req.HTML) == "" {
 			s.writeErr(w, http.StatusBadRequest, "html cannot be empty")
 			return
 		}
+		if err := render.ValidateRawDocument(*req.HTML); err != nil {
+			s.writeErr(w, http.StatusBadRequest, "invalid raw HTML: "+err.Error())
+			return
+		}
 		p.HTML = *req.HTML
-	}
-	if req.Raw != nil {
-		p.Raw = *req.Raw
+		p.Raw = true
 	}
 	now := s.now().UTC()
 	if req.TTLDays != nil {

@@ -96,6 +96,12 @@ func TestUpdateSendsIfUpdatedAtPrecondition(t *testing.T) {
 		if request["if_updated_at"] != expected {
 			t.Fatalf("if_updated_at = %#v, want %q", request["if_updated_at"], expected)
 		}
+		if request["raw"] != true {
+			t.Fatalf("raw = %#v, want true when replacement HTML is sent", request["raw"])
+		}
+		if request["html"] != "<p>updated</p>" {
+			t.Fatalf("html = %#v", request["html"])
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"id": "page1", "url": server.URL + "/p/page1", "title": "Updated",
@@ -145,5 +151,67 @@ func TestLoginRejectsRemovedLegacyFlags(t *testing.T) {
 				t.Fatalf("cmdLogin(%q) succeeded; want removed flag rejected", arg)
 			}
 		})
+	}
+}
+
+func TestCreateAlwaysSendsRawTrueAndRejectsRawFlag(t *testing.T) {
+	htmlPath := filepath.Join(t.TempDir(), "page.html")
+	if err := os.WriteFile(htmlPath, []byte("<!DOCTYPE html><html></html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WAYMARK_TOKEN", "test-token")
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/pages" {
+			t.Fatalf("request = %s %s", r.Method, r.URL.Path)
+		}
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request["raw"] != true {
+			t.Fatalf("raw = %#v, want true", request["raw"])
+		}
+		if request["title"] != "Report" {
+			t.Fatalf("title = %#v", request["title"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": "page1", "url": server.URL + "/p/page1", "title": "Report", "raw": true,
+			"created_at": "2026-08-18T12:00:00Z", "updated_at": "2026-08-18T12:00:00Z",
+		})
+	}))
+	t.Cleanup(server.Close)
+	if err := cmdCreate([]string{"--server", server.URL, "--title", "Report", htmlPath}); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmdCreate([]string{"--server", server.URL, "--title", "Report", "--raw", htmlPath}); err == nil {
+		t.Fatal("cmdCreate(--raw) succeeded; want unknown flag")
+	}
+}
+
+func TestUpdateMetadataOmitsRawAndReplacementSendsRawTrue(t *testing.T) {
+	t.Setenv("WAYMARK_TOKEN", "test-token")
+	var got map[string]any
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"id": "page1", "url": server.URL + "/p/page1", "title": "Renamed",
+			"updated_at": "2026-08-18T12:01:00Z",
+		})
+	}))
+	t.Cleanup(server.Close)
+	if err := cmdUpdate([]string{"--server", server.URL, "--title", "Renamed", "page1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := got["raw"]; ok {
+		t.Fatalf("metadata-only update sent raw = %#v", got["raw"])
+	}
+	if _, ok := got["html"]; ok {
+		t.Fatalf("metadata-only update sent html = %#v", got["html"])
 	}
 }

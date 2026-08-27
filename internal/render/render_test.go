@@ -94,3 +94,73 @@ func TestValidateThemedBody(t *testing.T) {
 		}
 	}
 }
+
+func validRawDocument(inner string) string {
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Title</title>
+<style>body { margin: 0; }</style>
+</head>
+<body>
+` + inner + `
+</body>
+</html>
+`
+}
+
+func TestValidateRawDocumentAcceptsCompleteSelfContainedHTML(t *testing.T) {
+	for _, inner := range []string{
+		`<p>Hello</p>`,
+		`<article class="plan"><section id="one"><h1>Plan</h1></section></article>`,
+		`<figure><svg viewBox="0 0 10 10"><path d="M0 0L10 10"></path></svg></figure>`,
+		`<!-- note --><p>Safe</p>`,
+	} {
+		if err := ValidateRawDocument(validRawDocument(inner)); err != nil {
+			t.Errorf("ValidateRawDocument(valid inner %q) = %v", inner, err)
+		}
+	}
+}
+
+func TestValidateRawDocumentRequiresDocumentStructure(t *testing.T) {
+	full := validRawDocument("<p>Hi</p>")
+	cases := []struct {
+		name    string
+		html    string
+		wantErr string
+	}{
+		{"doctype", strings.Replace(full, "<!DOCTYPE html>", "", 1), "doctype"},
+		{"html", strings.NewReplacer("<html lang=\"en\">", "", "</html>", "").Replace(full), "<html>"},
+		{"head", strings.NewReplacer("<head>", "", "</head>\n", "").Replace(full), "<head>"},
+		{"viewport", strings.Replace(full, `<meta name="viewport" content="width=device-width, initial-scale=1">`, "", 1), "viewport"},
+		{"title", strings.Replace(full, "<title>Title</title>", "", 1), "<title>"},
+		{"style", strings.Replace(full, "<style>body { margin: 0; }</style>", "", 1), "<style>"},
+		{"body", strings.NewReplacer("<body>\n", "", "\n</body>", "").Replace(full), "<body>"},
+		{"style in body", `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><title>T</title></head><body><style>x{}</style></body></html>`, "<style>"},
+		{"house theme link", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="/theme.css">`, 1), "house theme"},
+		{"relative house theme", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="theme.css">`, 1), "house theme"},
+		{"absolute house theme", strings.Replace(full, "<style>body { margin: 0; }</style>", `<link rel="stylesheet" href="https://pages.example/theme.css">`, 1), "house theme"},
+		{"plan profile", validRawDocument(`<article class="plan" data-plan-profile="systems"><p>x</p></article>`), "data-plan-profile"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateRawDocument(tc.html)
+			if err == nil {
+				t.Fatalf("ValidateRawDocument(%s) succeeded", tc.name)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("error %q does not contain %q", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateRawDocumentIgnoresPlanProfileInsideStyle(t *testing.T) {
+	html := validRawDocument("<p>Hi</p>")
+	html = strings.Replace(html, "body { margin: 0; }", `article.plan[data-plan-profile] { color: red; }`, 1)
+	if err := ValidateRawDocument(html); err != nil {
+		t.Fatalf("profile selector in CSS rejected: %v", err)
+	}
+}

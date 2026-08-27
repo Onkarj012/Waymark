@@ -24,7 +24,8 @@ Pieces:
 - a **Go HTTP server** (scoped-token JSON API + public page views),
 - **SQLite** storage with the page HTML stored inline (one file, no blob store),
 - a **`waymark` CLI** the agent calls,
-- a **house theme** (`theme/theme.css`) the server applies to every page,
+- a **house theme** (`theme/theme.css`) still used for legacy themed reads and
+  `theme/demo.html`,
 - an **agent skill** that teaches agents when and how to publish.
 
 ## Data flow
@@ -32,16 +33,17 @@ Pieces:
 ```
 owner browser ──▶ control origin /activate ──▶ scoped device token
                                                      │
-agent writes body HTML ──▶ waymark create ──▶ control origin /api/pages ──▶ server
+agent writes complete HTML ──▶ waymark create ──▶ control origin /api/pages ──▶ server
                                                                            │
                                                        SQLite (HTML inline) │
-browser ◀── content origin /p/{id} (public) ◀── linked to /theme.css ◀──────┘
+browser ◀── content origin /p/{id} (public) ◀── raw document served verbatim ┘
 ```
 
-A **themed** page stores only the *body content*; the server wraps it in a full
-document (`renderThemed` in `internal/web/server.go`) inside `<main class="page">`
-and links `/theme.css`. A **raw** page stores a complete document and is served
-verbatim.
+**New pages are raw only.** Create requires explicit `raw:true` and a complete
+self-contained HTML document. A **legacy themed** page stores only body content;
+the server still wraps it (`Hosted` in `internal/render`) inside
+`<main class="page">` and links `/theme.css`. Replacing a legacy themed page's
+HTML converts it atomically to raw.
 
 ## Repo layout
 
@@ -49,9 +51,8 @@ verbatim.
 |---|---|
 | `cmd/server/main.go` | server entrypoint: config, expiry sweeper, graceful shutdown |
 | `cmd/waymark/main.go` | CLI commands (`create`/`list`/`get`/`update`/`delete`/`login`/…) |
-| `cmd/waymark/preview.go` | deterministic offline standalone themed preview |
 | `cmd/waymark/config.go` | CLI token storage and server/token resolution |
-| `internal/render/render.go` | shared themed body validation and hosted/standalone document rendering |
+| `internal/render/render.go` | raw complete-document validator and legacy hosted/standalone wrappers |
 | `internal/store/store.go` | SQLite persistence; `Page`/`Meta` models; CRUD + expiry sweep |
 | `internal/web/server.go` | host gating, scoped auth, themed rendering, JSON handlers |
 | `internal/web/id.go` | unguessable base62 page IDs (crypto/rand) |
@@ -91,26 +92,31 @@ End-to-end smoke test (server must be running on :8080):
 export WAYMARK_CONFIG_DIR=/tmp/cp-cfg     # isolate from your real login
 ./bin/waymark login --server http://pages.localhost:8080
 # Open the printed URL, sign in with dev-admin-secret, and approve the device.
-printf '<h1>Hi</h1><p>It works.</p>' > /tmp/body.html
-./bin/waymark create --title "Smoke" /tmp/body.html   # prints the URL
+cat > /tmp/smoke.html <<'HTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smoke</title>
+<style>body { font-family: sans-serif; }</style>
+</head>
+<body>
+<h1>Hi</h1>
+<p>It works.</p>
+</body>
+</html>
+HTML
+./bin/waymark create --title "Smoke" /tmp/smoke.html   # prints the URL
 ./bin/waymark list
 ```
 
-Offline themed preview needs no server, credentials, config, network, auth,
-publishing, or browser:
-
-```bash
-./bin/waymark preview --title "Smoke" --output /tmp/smoke.html /tmp/body.html
-```
-
-The command validates the shared themed body contract, embeds `theme.CSS` in a
-standalone document through `internal/render`, creates parent directories, and
-refuses an existing output unless `--force` is passed. Given the same title,
-body, and embedded theme, it writes the same bytes.
+Inspect the local complete HTML file before publishing. There is no offline
+`preview` command and no `--raw` flag; create always publishes a raw document.
 
 Tests cover CLI credential handling, storage lifecycle and permissions, API
-authentication, rendering headers, and page-path log redaction. Add focused
-regression tests alongside behavior changes.
+authentication, raw-document validation, rendering headers, and page-path log
+redaction. Add focused regression tests alongside behavior changes.
 
 ## Conventions & invariants — read before changing things
 
@@ -122,11 +128,11 @@ regression tests alongside behavior changes.
 - **The `go` directive is `1.25`.** The Dockerfile build image must be at least
   that version (`golang:1.25-alpine`). If a dependency bumps it, bump the image
   too.
-- **Themed vs raw is a hard contract.** Themed content must be *body only* — no
-  `<!doctype>`, `<html>`, `<head>`, `<body>`, `<style>`, or `<script>`; the
-  renderer adds document markup, styling, and behavior. Raw content must be a
-  complete document. Don't blur the two. `waymark preview` enforces this shared
-  themed-body validator and permits semantic body HTML including inline SVG.
+- **New writes are raw-only.** Create requires `raw:true` and a complete
+  document (doctype, html, head, viewport meta, title, style, body). House-theme
+  links and `data-plan-profile` are rejected. `raw:false` is never accepted.
+  Legacy themed pages remain readable and metadata-updatable; replacing their
+  HTML converts them to raw. `/theme.css` stays for those legacy reads.
 - **The theme lives in exactly one place: `theme/theme.css`.** It's embedded into
   the binary and served at `/theme.css`. `theme/demo.html` links the source file
   directly, so visual previews cannot drift from the embedded stylesheet.

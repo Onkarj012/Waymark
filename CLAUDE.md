@@ -2,8 +2,9 @@
 
 This project keeps its full agent/contributor guide in **[AGENTS.md](AGENTS.md)** —
 read that first. It covers the architecture, repo layout, build/run/test, and the
-invariants you must not break (themed-vs-raw contract, pure-Go SQLite, the theme
-living only in `theme/theme.css`, the public-but-unguessable page IDs, auth model).
+invariants you must not break (raw-only writes with legacy themed reads, pure-Go
+SQLite, the theme living only in `theme/theme.css`, the public-but-unguessable
+page IDs, auth model).
 
 Quick orientation:
 
