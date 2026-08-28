@@ -1,8 +1,7 @@
 # Example: checkout service migration
 
 **Status:** Draft<br>
-**Last updated:** 2026-08-17<br>
-**Visual profile:** Migration
+**Last updated:** 2026-08-17
 
 ## Executive summary
 

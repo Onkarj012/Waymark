@@ -406,19 +406,13 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .facts dt:last-of-type, .facts dd:last-of-type { border-bottom: none; }
 
 /* ----- visual plan grammar ----- */
-/* A plan profile changes one identifying signal, never status meaning. The
-   article remains readable when the signal is absent, monochrome or printed. */
-article.plan[data-plan-profile] {
+/* The document owns its identifying treatment. It remains readable in
+   monochrome and print, and status never depends on color alone. */
+article.plan {
   --plan-signal: var(--accent);
   --plan-track: var(--cable);
-
   min-width: 0;
 }
-article.plan[data-plan-profile="systems"]   { --plan-signal: var(--blue); }
-article.plan[data-plan-profile="journey"]   { --plan-signal: var(--teal); }
-article.plan[data-plan-profile="migration"] { --plan-signal: var(--purple); }
-article.plan[data-plan-profile="decision"]  { --plan-signal: var(--amber); }
-article.plan[data-plan-profile="delivery"]  { --plan-signal: var(--red); }
 .plan > section { --marker: var(--plan-signal); }
 
 /* Identity header — a compact register for scope, owner and plan state. */
@@ -537,8 +531,8 @@ article.plan[data-plan-profile="delivery"]  { --plan-signal: var(--red); }
 .dependency-flow .dependency-name { display: block; font-weight: 600; }
 .dependency-flow .dependency-note { display: block; color: var(--text-muted); font-size: .84rem; }
 
-/* Decision comparison — recommendation text carries the verdict; the profile
-   signal is only a scanning aid. */
+/* Decision comparison — recommendation text carries the verdict; color is
+   only a scanning aid. */
 .decision-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px; margin: 18px 0 24px;
@@ -698,7 +692,7 @@ footer {
   .page-layout { display: block; }
   .section-nav, .reading-progress { display: none; }
   a { color: inherit; text-decoration: underline; }
-  article.plan[data-plan-profile] { --plan-signal: #333333; --plan-track: #777777; }
+  article.plan { --plan-signal: #333333; --plan-track: #777777; }
   .stat, table, .facts, .phase-roadmap { box-shadow: none; }
   .change-state, .system-flow, .phase-detail, .decision-option, .open-questions { break-inside: avoid; }
   .system-flow .flow-node, .phase-roadmap > li, .plan-identity .identity-register > div { background: #ffffff; }
@@ -728,7 +722,7 @@ footer {
 <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5z" fill="currentColor"></path></svg>
 </button>
 <main class="page">
-<article class="plan" data-plan-profile="systems">
+<article class="plan">
 <div class="page-layout">
   <aside class="section-nav" aria-label="Plan sections">
     <p class="label">Visual plan</p>
@@ -746,7 +740,7 @@ footer {
 
   <div class="page-content">
     <header class="plan-identity">
-      <p class="identity-kicker">SYSTEMS PROFILE · IMPLEMENTATION PLAN</p>
+      <p class="identity-kicker">SYSTEMS PLAN · IMPLEMENTATION PLAN</p>
       <h1>Visual-first agent planning system</h1>
       <p class="dek identity-summary">Turn settled decisions into plans people can understand at a glance—without letting plan creation become a project of its own.</p>
       <dl class="identity-register">
@@ -785,7 +779,7 @@ footer {
       </div>
       <dl class="facts">
         <dt>Default appearance</dt><dd>Dark first; persistent light-mode choice</dd>
-        <dt>Identity model</dt><dd>One Waymark system, five controlled plan profiles</dd>
+        <dt>Identity model</dt><dd>One Waymark system, document-owned visual treatments</dd>
         <dt>Visual policy</dt><dd>Visualize meaningful relationships; never chase a quota</dd>
         <dt>Quality ceiling</dt><dd>Compose once, validate once, inspect once, repair at most once</dd>
       </dl>
@@ -807,7 +801,7 @@ footer {
           <text x="366" y="66" style="fill: var(--accent-text); font-family: var(--font-mono)" font-size="16">VISUAL COMPILER</text>
           <text x="366" y="103" style="fill: var(--text); font-family: var(--font-sans)" font-size="24" font-weight="600">Plan-shaped view</text>
           <text x="366" y="137" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Identity + visual grammar</text>
-          <text x="366" y="163" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Checksums + local preview</text>
+          <text x="366" y="163" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">Checksums + local inspection</text>
           <text x="366" y="189" style="fill: var(--text-muted); font-family: var(--font-sans)" font-size="16">One bounded quality pass</text>
           <line x1="602" y1="129" x2="654" y2="129" style="stroke: var(--accent)" stroke-width="3" marker-end="url(#arrow-change)"></line>
           <rect x="670" y="54" width="206" height="150" rx="4" style="fill: var(--surface-2); stroke: var(--border-strong)"></rect>
@@ -829,8 +823,8 @@ footer {
           <tbody>
             <tr><th scope="row">0 · Base</th><td>Stack on <code>2d61439</code>; isolate dirty SKILLS work</td><td>Clean implementation worktrees</td></tr>
             <tr><th scope="row">1 · Render</th><td>Server and CLI share a standard-library renderer</td><td>Go/Worker parity; no SQLite in CLI deps</td></tr>
-            <tr><th scope="row">2 · Visuals</th><td>Five profiles and ten component families</td><td>Contract, contrast, responsive, and print tests</td></tr>
-            <tr><th scope="row">3 · Preview</th><td>Offline standalone preview without auth</td><td>Safety, overwrite, stdin, and SVG tests</td></tr>
+            <tr><th scope="row">2 · Visuals</th><td>Document-owned CSS and ten component families</td><td>Contract, contrast, responsive, and print tests</td></tr>
+            <tr><th scope="row">3 · Writes</th><td>Raw-only create and replacement writes</td><td>Complete-document validation and legacy-read tests</td></tr>
             <tr><th scope="row">4 · Verify</th><td>Versioned checksummed plan artifacts</td><td>Stamp and verify tests</td></tr>
             <tr><th scope="row">5–6 · Teach</th><td>Shared bounded approval workflow</td><td>Byte-identical skill copies and one local proof</td></tr>
           </tbody>
@@ -841,7 +835,7 @@ footer {
     <section id="controls">
       <h2>Controls</h2>
       <section class="stats" aria-label="Bounded plan creation loop">
-        <div class="stat"><div class="label">1 · Compose</div><div class="value">Once</div><div class="sub">Markdown and visual body</div></div>
+        <div class="stat"><div class="label">1 · Compose</div><div class="value">Once</div><div class="sub">Markdown and complete HTML</div></div>
         <div class="stat"><div class="label">2 · Validate</div><div class="value">Once</div><div class="sub">Safety, structure, paths, anchors</div></div>
         <div class="stat"><div class="label">3 · Inspect</div><div class="value">Once</div><div class="sub">Desktop, mobile, and print</div></div>
         <div class="stat"><div class="label">4 · Repair</div><div class="value">≤ 1</div><div class="sub">Only a concrete defect</div></div>
@@ -858,7 +852,7 @@ footer {
           <thead><tr><th scope="col">Capability</th><th scope="col">Required evidence</th><th scope="col">Status</th></tr></thead>
           <tbody>
             <tr><th scope="row">Dark-first, light-capable</th><td>First visit is dark; saved light survives reload</td><td><span class="badge plain">Planned</span></td></tr>
-            <tr><th scope="row">Plan identity</th><td>Five profiles work in both themes and print</td><td><span class="badge plain">Planned</span></td></tr>
+            <tr><th scope="row">Plan identity</th><td>Document-owned visual treatment works in both themes and print</td><td><span class="badge plain">Planned</span></td></tr>
             <tr><th scope="row">Visual understanding</th><td>First screen answers destination, change, sequence, risk, proof</td><td><span class="badge plain">Planned</span></td></tr>
             <tr><th scope="row">Approval safety</th><td>No downstream action occurs while status is Draft</td><td><span class="badge warn">Awaiting approval</span></td></tr>
           </tbody>
@@ -875,7 +869,7 @@ footer {
           <tbody>
             <tr><th scope="row">Theme branch dependency</th><td><span class="badge warn">Watch</span></td><td>Stack explicitly on <code>2d61439</code></td></tr>
             <tr><th scope="row">Planning becomes design theatre</th><td><span class="badge warn">Watch</span></td><td>No visual quota; one repair maximum</td></tr>
-            <tr><th scope="row">Active HTML content</th><td><span class="badge bad">Guard</span></td><td>Reject scripts, styles, full-document tags, and raw mode</td></tr>
+            <tr><th scope="row">Active HTML content</th><td><span class="badge bad">Guard</span></td><td>Require complete HTML, keep JavaScript out, and reject house-theme links</td></tr>
             <tr><th scope="row">Skill copies drift</th><td><span class="badge warn">Watch</span></td><td>Reconcile sources and require empty recursive diffs</td></tr>
           </tbody>
         </table>

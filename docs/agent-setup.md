@@ -121,22 +121,33 @@ For the D1 schema, backups, upgrades, and production notes, continue with
 
 ## Verify End To End
 
-After `waymark status` succeeds, publish a small themed page:
+After `waymark status` succeeds, publish a small raw page:
 
 ```bash
 waymark create --title "Waymark smoke test" - <<'HTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waymark smoke test</title>
+<style>body { font-family: sans-serif; }</style>
+</head>
+<body>
 <header>
   <h1>Waymark smoke test</h1>
-  <p class="dek">CLI, authentication, storage, theme, and public routing are working.</p>
+  <p class="dek">CLI, authentication, storage, and public routing are working.</p>
 </header>
 <section>
   <h2>Result</h2>
   <p>The setup completed successfully.</p>
 </section>
+</body>
+</html>
 HTML
 ```
 
-Open the returned public URL and verify that the themed page loads. Setup is
+Open returned public URL and verify that page loads as authored. Setup is
 complete only when:
 
 - the deployment (Cloudflare Workers, or the container) is healthy, when this

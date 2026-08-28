@@ -1,7 +1,7 @@
 {
   "name": "waymark-workers",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Cloudflare Workers + D1 port of the Waymark control and content servers.",
   "scripts": {
