@@ -74,7 +74,11 @@ must leave no committed sidecar. Test recovery of data larger than the current n
 
 Read source and metadata from the same row snapshot. Return the exact authoritative
 `updated_at` string used for CAS. CLI source structs must retain that string, not reformat it.
-Go currently serializes timestamps through `time.Time`; verify persisted canonical values round-trip.
+Add a source snapshot representation that retains the persisted timestamp string in both stores.
+Do not obtain it by parsing and serializing the existing Go `Page.UpdatedAt` field: a Workers
+value ending in `.120Z` can be emitted as `.12Z` by Go even though the row did not change.
+Keep the legacy metadata API's serialization unchanged; it is not the exact-string authority
+for source adoption or managed preflight. Never normalize stored timestamps during export.
 Workers must count `TextEncoder` bytes, not JavaScript string length or SQLite `length(TEXT)`.
 Reject invalid UTF-8 and unpaired surrogate input before storage, without rewriting valid documents.
 Legacy invalid stored bytes must fail export rather than pass through lossy JSON encoding.
@@ -106,6 +110,13 @@ Do not automatically embed the old stylesheet or call that conversion a pull.
   Refuse authenticated redirects and origin mismatches before forwarding any token.
   A manifest or sidecar is not authority to send a saved token to another server.
   Explicit server selection must match the binding; changing config must not redirect a managed operation.
+- For the initial pull, no sidecar exists yet. When the selected token comes from saved config,
+  require the resolved control origin to equal normalized `config.URL` before the first bearer
+  request. Resolve public-origin discovery without credentials, then enforce that comparison.
+  A `--server` or `WAYMARK_URL` override does not authorize forwarding the saved token elsewhere.
+  Missing or mismatched saved-origin binding stops with instructions to log in to that instance.
+  Preserve explicit `WAYMARK_TOKEN` precedence for the deliberately selected destination; never
+  substitute a saved token after an environment-token failure. Neither path permits bearer redirects.
 - Validate returned ID, origins, URL, byte count, checksum, and timestamp before installation.
   Read sidecar paths only relative to their containing directory, with no absolute paths or `..` escapes.
   Verify regular-file identity and hash from the opened file, not a later reopened pathname.
@@ -115,6 +126,9 @@ Acceptance: two independently approved devices export identical UTF-8 bytes, inc
 emoji, combining characters, script tags, and a trailing newline, without executing them.
 Read-only credentials work. Metadata clients remain compatible. Expired pages cannot be exported.
 Race-created targets, forged origins, symlinks, bad checksums, and interrupted saves fail closed.
+Test an initial pull without sidecars against matching and mismatched saved origins, including
+public-to-control discovery. A mismatched destination receives zero bearer requests. An explicitly
+selected environment token works at its chosen destination without exposing the saved token.
 
 ## P2: manifest-managed publish and update
 
@@ -158,7 +172,8 @@ waymark publish --manifest ./.waymark-page.json --if-updated-at "$EXPECTED" --pe
    Reuse `POST /api/pages` with `raw:true`. Never find or upsert by title or slug.
    Without `--create`, a missing binding is an error. A bound manifest cannot create a replacement ID.
 3. Existing destinations require `--if-updated-at` exactly equal to the manifest's recorded string.
-   Fetch fresh metadata before mutation. If the destination timestamp differs, stop before writing,
+   Fetch the fresh P1 source envelope before mutation; its persisted timestamp is the authority,
+   not legacy `get` metadata that may reformat it. If the timestamp differs, stop before writing,
    even when local HTML is unchanged. No automatic timestamp refresh, retry, force, or overwrite.
 4. Add `PUT /api/pages/{id}/managed`, requiring `pages:write`, non-null `if_updated_at`, and the
    existing typed update fields. Omit precondition: 428. Invalid precondition: 400. Stale: 409.
@@ -166,7 +181,10 @@ waymark publish --manifest ./.waymark-page.json --if-updated-at "$EXPECTED" --pe
    Old servers lacking this route stop with an upgrade message, never fall back to unconditional PUT.
 5. Enforce CAS again in the final atomic store write, including a live-page expiry predicate.
    Keep the legacy update route's optional CAS compatibility; do not claim a CLI read prevents races.
-   Preserve opaque timestamp precision across Go and Workers; use monotonic new timestamps.
+   Managed requests validate `if_updated_at` as RFC3339 but retain the original string. Introduce
+   an exact-string managed store operation with `WHERE updated_at = ?` bound to that literal value.
+   Do not reuse Go's `SaveIfUpdatedAt(time.Time)` or Workers' normalization through `toISOString()`.
+   Parse time separately only for expiry/ordering calculations. Use monotonic new timestamps.
 6. Managed create requires exactly one positive `--ttl N` or `--permanent`.
    Managed updates require exactly one of `--keep-expiry`, positive `--ttl N`, or `--permanent`.
    Keep-expiry omits `ttl_days`; permanent sends zero. Reject negatives and ambiguous combinations.
@@ -175,7 +193,9 @@ waymark publish --manifest ./.waymark-page.json --if-updated-at "$EXPECTED" --pe
 7. Server compares bytes and effective title, slug, raw mode, and expiry after checking live CAS.
    Identical state is a no-op: preserve `updated_at`, expiry, and history. Explicit TTL renewal is a
    mutation when its effective expiry changes. Return `{"outcome":"unchanged|updated","page":...}`,
-   where `page` uses the existing metadata shape. Do not send that literal outcome union on the wire.
+   where `page` uses the existing metadata shape but its `updated_at` is the exact persisted string,
+   including on a no-op. Leave legacy response serialization unchanged. Do not send that literal
+   outcome union on the wire.
 8. After success, atomically replace the manifest with returned authoritative metadata and hashes.
    Serialize local operations with an exclusive lock; compare the original manifest before replacement.
    A local failure after remote success reports remote ID/timestamp and requires explicit reconciliation.
@@ -187,6 +207,10 @@ Source checksum changes require inspection and a new exact approval, including d
 The skill retains approval boundaries; command invocation and a write token do not prove human consent.
 Acceptance: stale metadata or final-write races produce conflicts with no mutation; same titles/slugs
 never select a destination; read-only credentials cannot mutate; no-op preserves every timestamp.
+Seed a Workers-style `.120Z` row in the Go store, pull/adopt its source, and perform a managed
+no-op and update: preflight and final CAS must accept the exact unchanged value, and a stale
+value must conflict. Cover `.000Z` and nanosecond values across both backends without timestamp
+normalization on reads. Retain existing legacy metadata/update compatibility tests unchanged.
 
 ## P3: bounded revisions and safe restore
 
