@@ -17,17 +17,17 @@ func TestResolveTokenPrecedenceAndIgnoresOldPasscode(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("WAYMARK_TOKEN", "env-token")
-	server, token, _, source, err := resolve("")
+	selected, err := resolve("")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if server != "https://saved.example" || token != "env-token" || source != "env" {
-		t.Fatalf("resolve() = %q, %q, %q", server, token, source)
+	if selected.server != "https://saved.example" || selected.credential.token != "env-token" || selected.credential.source != "env" {
+		t.Fatal("environment token precedence not preserved")
 	}
 	t.Setenv("WAYMARK_TOKEN", "")
-	_, token, _, source, err = resolve("")
-	if err != nil || token != "saved-token" || source != "config" {
-		t.Fatalf("saved token = %q, %q, %v", token, source, err)
+	selected, err = resolve("")
+	if err != nil || selected.credential.token != "saved-token" || selected.credential.source != "config" || selected.credential.boundOrigin != "https://saved.example" {
+		t.Fatalf("saved token provenance not preserved: %v", err)
 	}
 
 	oldDir := t.TempDir()
@@ -35,9 +35,9 @@ func TestResolveTokenPrecedenceAndIgnoresOldPasscode(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(oldDir, "config.json"), []byte(`{"url":"https://old.example","passcode":"old-secret"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	server, token, _, _, err = resolve("")
-	if err != nil || server != "https://old.example" || token != "" {
-		t.Fatalf("old config = %q, %q, %v", server, token, err)
+	selected, err = resolve("")
+	if err != nil || selected.server != "https://old.example" || selected.credential.token != "" {
+		t.Fatalf("legacy config handling changed: %v", err)
 	}
 }
 

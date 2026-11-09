@@ -84,7 +84,7 @@ func TestResolveReturnsConfigParseError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, _, _, _, err := resolve(""); err == nil {
+	if _, err := resolve(""); err == nil {
 		t.Fatal("resolve() returned no error for malformed config")
 	}
 }

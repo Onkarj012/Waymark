@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -25,18 +24,11 @@ func safeHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-func checkSavedTokenOrigin(server string) error {
-	if os.Getenv("WAYMARK_TOKEN") != "" {
+func (credential resolvedCredential) checkOrigin(server string) error {
+	if credential.source == "env" {
 		return nil
 	}
-	cfg, err := loadConfig()
-	if err != nil {
-		return err
-	}
-	if cfg.Token == "" {
-		return nil
-	}
-	saved, err := normalizeServerURL(cfg.URL)
+	saved, err := normalizeServerURL(credential.boundOrigin)
 	if err != nil || saved != server {
 		return errors.New("saved token belongs to a different control origin; run `waymark login --server <instance-url>` for this instance")
 	}

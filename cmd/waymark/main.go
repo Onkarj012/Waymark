@@ -364,21 +364,22 @@ func cmdStatus(args []string) error {
 	if fs.NArg() != 0 {
 		return errors.New("status does not accept positional arguments")
 	}
-	srv, token, srvSrc, tokenSrc, err := resolve(*server)
+	selected, err := resolve(*server)
 	if err != nil {
 		return err
 	}
+	srv, token := selected.server, selected.credential.token
 
 	fmt.Printf("Config file: %s\n", configPath())
 	if srv == "" {
 		fmt.Println("Server:      (not set) — run `waymark login`")
 	} else {
-		fmt.Printf("Server:      %s (from %s)\n", srv, srvSrc)
+		fmt.Printf("Server:      %s (from %s)\n", srv, selected.serverSource)
 	}
 	if token == "" {
 		fmt.Println("Credential:  (not set) — run `waymark login`")
 	} else {
-		fmt.Printf("Credential:  device token (from %s)\n", tokenSrc)
+		fmt.Printf("Credential:  device token (from %s)\n", selected.credential.source)
 	}
 
 	if srv == "" || token == "" {
@@ -388,7 +389,7 @@ func cmdStatus(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := checkSavedTokenOrigin(srv); err != nil {
+	if err := selected.credential.checkOrigin(srv); err != nil {
 		return err
 	}
 
@@ -444,10 +445,11 @@ type client struct {
 }
 
 func newClient(serverFlag *string) (*client, error) {
-	server, token, _, _, err := resolve(*serverFlag)
+	selected, err := resolve(*serverFlag)
 	if err != nil {
 		return nil, err
 	}
+	server, token := selected.server, selected.credential.token
 	if server == "" {
 		return nil, errors.New("no server configured — run `waymark login`")
 	}
@@ -458,7 +460,7 @@ func newClient(serverFlag *string) (*client, error) {
 	if token == "" {
 		return nil, errors.New("not logged in — run `waymark login`")
 	}
-	if err := checkSavedTokenOrigin(server); err != nil {
+	if err := selected.credential.checkOrigin(server); err != nil {
 		return nil, err
 	}
 	return &client{base: server, token: token}, nil

@@ -79,15 +79,15 @@ func cmdPull(args []string) error {
 
 func fetchSource(serverFlag, id string) (sourceEnvelope, error) {
 	var envelope sourceEnvelope
-	server, token, _, _, err := resolve(serverFlag)
+	selected, err := resolve(serverFlag)
 	if err != nil {
 		return envelope, err
 	}
-	server, err = normalizeServerURL(server)
+	server, err := normalizeServerURL(selected.server)
 	if err != nil {
 		return envelope, err
 	}
-	if token == "" {
+	if selected.credential.token == "" {
 		return envelope, errors.New("not logged in; run `waymark login`")
 	}
 	discovery, err := discover(server)
@@ -105,14 +105,14 @@ func fetchSource(serverFlag, id string) (sourceEnvelope, error) {
 	if server != control && server != public {
 		return envelope, errors.New("discovery does not describe the requested instance")
 	}
-	if err := checkSavedTokenOrigin(control); err != nil {
+	if err := selected.credential.checkOrigin(control); err != nil {
 		return envelope, err
 	}
 	request, err := http.NewRequest(http.MethodGet, control+"/api/pages/"+id+"/source", nil)
 	if err != nil {
 		return envelope, err
 	}
-	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Authorization", "Bearer "+selected.credential.token)
 	request.Header.Set("Accept", "application/json")
 	response, err := safeHTTPClient(30 * time.Second).Do(request)
 	if err != nil {
