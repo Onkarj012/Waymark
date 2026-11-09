@@ -10,7 +10,13 @@ export class BodyTooLargeError extends Error {
   }
 }
 
-export async function readBodyText(request: Request, maxBytes = MAX_BODY_BYTES): Promise<string> {
+export class InvalidUTF8Error extends Error {
+  constructor() {
+    super("invalid UTF-8 request body");
+  }
+}
+
+export async function readBodyText(request: Request, maxBytes = MAX_BODY_BYTES, strictUTF8 = false): Promise<string> {
   if (!request.body) return "";
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -33,7 +39,11 @@ export async function readBodyText(request: Request, maxBytes = MAX_BODY_BYTES):
     merged.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new TextDecoder().decode(merged);
+  try {
+    return new TextDecoder("utf-8", { fatal: strictUTF8, ignoreBOM: strictUTF8 }).decode(merged);
+  } catch {
+    throw new InvalidUTF8Error();
+  }
 }
 
 /** Parses JSON and rejects any key not in `allowedKeys` — the equivalent of

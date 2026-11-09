@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Cloudflare Workers + D1 port of the Waymark control and content servers.",
   "scripts": {
+    "configure": "node scripts/configure.mjs",
     "postinstall": "node scripts/embed-theme.mjs",
     "generate:theme": "node scripts/embed-theme.mjs",
     "typecheck": "tsc --noEmit",

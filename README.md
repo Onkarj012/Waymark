@@ -22,7 +22,10 @@ for reports you intend to share, not for storing secrets.
 
 The [public-release roadmap](docs/plans/public-release-roadmap.md) proposes
 free-domain onboarding, portable publishing, release binaries, diagnostics,
-and a tested support policy. These are planned features, not current commands.
+and a tested support policy. This branch implements source download (`pull`),
+read-only diagnostics (`doctor`), local skill installation, safer CLI arguments,
+and fork-safe free-host configuration. Managed publishing, revisions, guided
+deployment, and release binaries remain planned.
 
 ## Quick Start
 
@@ -48,6 +51,7 @@ then run:
 ```bash
 waymark login --server https://pages.example.com
 waymark status
+waymark doctor
 ```
 
 `login` prints an activation URL and short code. Open the URL, sign in with the
@@ -69,17 +73,19 @@ Workers:
 cd workers
 npm install
 npx wrangler login
-npx wrangler d1 create waymark   # copy the database_id into wrangler.*.toml
+npx wrangler d1 create waymark
+npm run configure -- --subdomain YOUR_ACCOUNT_SUBDOMAIN --database-id YOUR_D1_DATABASE_ID
 npm run d1:migrate:remote
 npx wrangler secret put WAYMARK_ADMIN_PASSCODE -c wrangler.control.toml
 npm run deploy:control
 npm run deploy:content
 ```
 
-Set `PUBLIC_BASE_URL` and `CONTROL_BASE_URL` in both `wrangler.*.toml` files to
-two distinct custom domains before deploying — published HTML is active, so
-the two origins are a security requirement even though both Workers share one
-database.
+The configure command writes ignored local configs using two distinct free
+`workers.dev` subdomains. No purchased domain is required. The committed
+`wrangler.*.example.toml` files are templates, not anyone else's deployment.
+Custom domains are optional. Keep the two origins distinct because published
+HTML is active content, even though the Workers share a database.
 
 After both Workers report healthy, connect exactly as you would to an
 existing instance:
@@ -93,6 +99,33 @@ See [the complete Cloudflare Workers guide](docs/self-hosting/cloudflare-workers
 for agent-friendly deployment steps, the D1 schema, backups, custom domains,
 upgrades, and production notes. The Go server also still runs as a plain
 container via the `Dockerfile` for anyone self-hosting outside Cloudflare.
+
+### Download source from another device
+
+After that device completes its own browser-approved login:
+
+```bash
+waymark pull --output ./report.html PAGE_ID
+```
+
+This requires deploying the updated backend, not just upgrading the CLI.
+It downloads stored HTML without rendering it and creates a `0600` metadata
+sidecar at `report.html.source.json`. Neither target may already exist.
+Use an existing directory with no symlink components. Filesystems that cannot
+enforce private permissions or atomic no-clobber links fail safely; Windows
+source-export support is not yet verified.
+The sidecar preserves the exact remote timestamp and checksum. Legacy themed
+fragments need explicit `--legacy-fragment` and remain non-publishable.
+Pull is read-only and does not provide automatic sync or page history.
+New HTML writes are limited to 1,000,000 UTF-8 bytes, with titles and slugs
+limited to 1,024 bytes each. Existing larger pages remain downloadable and
+metadata-updatable; replacing their HTML must satisfy the new limit.
+
+Install this checkout's agent skill without copying or overwriting directories:
+
+```bash
+waymark skill install --source "$(pwd)/.skills/waymark" --client agents
+```
 
 ### 4. Publish
 

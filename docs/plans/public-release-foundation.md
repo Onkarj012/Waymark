@@ -4,6 +4,12 @@ Status: proposed slices, not implementation or deployment authorization.
 Evidence: 2026-11-09, base `1bee8a944de4b81e3447d94ebd8c5f8d2ab171f8`.
 Branch: `docs/public-release-plan`. Parent roadmap: `public-release-roadmap.md`.
 
+Implementation progress: `feat/portable-publishing-foundation` adds CLI argument
+validation, a descriptive User-Agent and redirect refusal, fork-safe free-host
+configuration, GitHub Actions coverage, diagnostics, and skill installation.
+These additions are not a tagged release or a production deployment. Guided
+deployment, release binaries, and the remaining support work are still planned.
+
 ## Scope and release boundary
 
 This Markdown plan covers CLI, hosting, CI, distribution, onboarding, and operations.

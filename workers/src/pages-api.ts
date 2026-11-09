@@ -3,12 +3,13 @@
 // their request/response shapes (createReq/updateReq/pageResp) and
 // ttlToExpiry(). This is the surface the `waymark` CLI drives directly.
 
-import { BodyTooLargeError, checkFieldTypes, decodeStrict, isSet, readBodyText, type FieldType } from "./body";
+import { BodyTooLargeError, InvalidUTF8Error, MAX_BODY_BYTES, checkFieldTypes, decodeStrict, isSet, readBodyText, type FieldType } from "./body";
 import { errJson, json } from "./http";
+import { hashHighEntropy } from "./crypto";
 import { newId } from "./id";
 import { validateRawDocument } from "./render";
 import { ConflictError, NotFoundError, type D1Like, type Page, type PageMeta } from "./types";
-import { createPage, deletePage, getPage, listPages, nowIso, savePage, savePageIfUpdatedAt } from "./store";
+import { createPage, deletePage, getPage, getPageSource, listPages, nowIso, savePage, savePageIfUpdatedAt } from "./store";
 
 export interface PageResp {
   id: string;
@@ -79,13 +80,16 @@ const PAGE_FIELD_TYPES: Readonly<Record<string, FieldType>> = {
 };
 
 const PAGE_KEYS = ["title", "slug", "html", "raw", "ttl_days"] as const;
+const MAX_DOCUMENT_BYTES = 1_000_000;
+const MAX_METADATA_BYTES = 1_024;
 
 async function readPageReq(request: Request, allowPrecondition = false) {
   let text: string;
   try {
-    text = await readBodyText(request);
+    text = await readBodyText(request, MAX_BODY_BYTES, true);
   } catch (err) {
     if (err instanceof BodyTooLargeError) return { ok: false as const, status: 413, message: "request body too large" };
+    if (err instanceof InvalidUTF8Error) return { ok: false as const, status: 400, message: "invalid JSON: invalid UTF-8 or unpaired Unicode surrogate" };
     throw err;
   }
   const allowedKeys = allowPrecondition ? [...PAGE_KEYS, "if_updated_at"] : PAGE_KEYS;
@@ -93,6 +97,19 @@ async function readPageReq(request: Request, allowPrecondition = false) {
   if (!decoded.ok) return { ok: false as const, status: 400, message: decoded.message };
   const typeError = checkFieldTypes(decoded.value, PAGE_FIELD_TYPES);
   if (typeError) return { ok: false as const, status: 400, message: typeError };
+  for (const [key, value] of Object.entries(decoded.value)) {
+    if (typeof value !== "string") continue;
+    const bytes = new TextEncoder().encode(value);
+    if (new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes) !== value) {
+      return { ok: false as const, status: 400, message: "invalid JSON: invalid UTF-8 or unpaired Unicode surrogate" };
+    }
+    if (key !== "title" && key !== "slug" && key !== "html") continue;
+    const size = key === "html" ? bytes.byteLength : new TextEncoder().encode(value.trim()).byteLength;
+    const maximum = key === "html" ? MAX_DOCUMENT_BYTES : MAX_METADATA_BYTES;
+    if (size > maximum) {
+      return { ok: false as const, status: 413, message: `${key} exceeds maximum of ${maximum} UTF-8 bytes` };
+    }
+  }
   return { ok: true as const, value: decoded.value };
 }
 
@@ -162,6 +179,74 @@ export async function handleGetMeta(
     if (err instanceof NotFoundError) return errJson(404, "page not found");
     return errJson(500, "could not load page");
   }
+}
+
+export interface SourceResp {
+  schema: "waymark-source";
+  version: 1;
+  control_origin: string;
+  public_origin: string;
+  id: string;
+  url: string;
+  title: string;
+  slug: string;
+  raw: boolean;
+  created_at: string;
+  updated_at: string;
+  expires_at: string | null;
+  html: string;
+  utf8_bytes: number;
+  sha256: string;
+}
+
+export async function handleGetSource(
+  db: D1Like,
+  controlUrl: string,
+  publicUrl: string,
+  id: string,
+): Promise<Response> {
+  const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+  let snapshot: Awaited<ReturnType<typeof getPageSource>>;
+  try {
+    snapshot = await getPageSource(db, id);
+  } catch (err) {
+    if (err instanceof NotFoundError) return errJson(404, "page not found", headers);
+    return errJson(500, "could not load page", headers);
+  }
+  if (snapshot.expiresAt !== null) {
+    const expires = Date.parse(snapshot.expiresAt);
+    if (Number.isNaN(expires)) return errJson(500, "invalid page expiry", headers);
+    if (expires <= Date.now()) return errJson(404, "page not found", headers);
+  }
+  let html: string;
+  let title: string;
+  let slug: string;
+  try {
+    const decoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+    html = decoder.decode(snapshot.htmlBytes);
+    title = decoder.decode(snapshot.titleBytes);
+    slug = decoder.decode(snapshot.slugBytes);
+  } catch {
+    return errJson(422, "stored source is not valid UTF-8", headers);
+  }
+  const source: SourceResp = {
+    schema: "waymark-source",
+    version: 1,
+    control_origin: controlUrl,
+    public_origin: publicUrl,
+    id: snapshot.id,
+    url: pageUrl(publicUrl, snapshot.id),
+    title,
+    slug,
+    raw: snapshot.raw,
+    created_at: snapshot.createdAt,
+    updated_at: snapshot.updatedAt,
+    expires_at: snapshot.expiresAt,
+    html,
+    utf8_bytes: new TextEncoder().encode(html).byteLength,
+    sha256: await hashHighEntropy(html),
+  };
+  return json(200, source, headers);
 }
 
 export async function handleUpdate(

@@ -15,7 +15,7 @@ import {
   handleDiscovery,
   handleSelfRevoke,
 } from "./device-api";
-import { handleCreate, handleDelete, handleGetMeta, handleList, handleUpdate } from "./pages-api";
+import { handleCreate, handleDelete, handleGetMeta, handleGetSource, handleList, handleUpdate } from "./pages-api";
 import {
   controlSecurityHeaders,
   handleActivate,
@@ -153,6 +153,12 @@ async function route(
     const credential = await requireScope(env, request, "pages:read");
     if (credential instanceof Response) return credential;
     return handleList(env.DB, config.publicUrl, request);
+  }
+  const pageSourceMatch = pathname.match(/^\/api\/pages\/([^/]+)\/source$/);
+  if (pageSourceMatch && method === "GET") {
+    const credential = await requireScope(env, request, "pages:read");
+    if (credential instanceof Response) return credential;
+    return handleGetSource(env.DB, config.controlUrl, config.publicUrl, safeDecodeURIComponent(pageSourceMatch[1]!));
   }
   const pageIdMatch = pathname.match(/^\/api\/pages\/([^/]+)$/);
   if (pageIdMatch && method === "GET") {

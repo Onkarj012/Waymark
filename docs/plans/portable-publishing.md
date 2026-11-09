@@ -4,7 +4,11 @@ Status: proposal only, 2026-11-09. No runtime implementation is authorized here.
 Baseline: `1bee8a944de4b81e3447d94ebd8c5f8d2ab171f8`, branch `docs/public-release-plan`.
 This document owns portable workflows, not the [parent roadmap](public-release-roadmap.md)'s priorities.
 All new commands, flags, routes, schemas, and defaults below are **proposed**.
-They are not available in the current CLI. Examples are specifications, not instructions to run now.
+They are not all available in the released CLI. Examples below describe the target contract.
+
+Implementation progress: the `feat/portable-publishing-foundation` branch adds
+P1 source export and `waymark pull`, pending review, merge, and backend deployment.
+Managed publish, adoption, history, restore, and the owner dashboard remain proposals.
 
 ## Scope and existing behavior
 

@@ -113,7 +113,7 @@ func loginWithDevice(serverValue, deviceName string, readOnly bool) error {
 }
 
 func discover(server string) (discoveryResponse, error) {
-	resp, err := (&http.Client{Timeout: 15 * time.Second}).Get(server + "/.well-known/waymark")
+	resp, err := safeHTTPClient(15 * time.Second).Get(server + "/.well-known/waymark")
 	if err != nil {
 		return discoveryResponse{}, err
 	}
@@ -133,7 +133,7 @@ func requestDeviceCode(controlURL, secret, label string, scopes []string) (devic
 	if err != nil {
 		return deviceCodeResponse{}, err
 	}
-	resp, err := (&http.Client{Timeout: 15 * time.Second}).Post(controlURL+"/api/auth/device/code", "application/json", bytes.NewReader(payload))
+	resp, err := safeHTTPClient(15*time.Second).Post(controlURL+"/api/auth/device/code", "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return deviceCodeResponse{}, err
 	}
@@ -162,7 +162,7 @@ func pollDeviceToken(controlURL string, code deviceCodeResponse, secret string) 
 		if err != nil {
 			return "", err
 		}
-		resp, err := (&http.Client{Timeout: 15 * time.Second}).Post(controlURL+"/api/auth/device/token", "application/json", bytes.NewReader(payload))
+		resp, err := safeHTTPClient(15*time.Second).Post(controlURL+"/api/auth/device/token", "application/json", bytes.NewReader(payload))
 		if err != nil {
 			return "", err
 		}

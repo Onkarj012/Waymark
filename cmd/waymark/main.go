@@ -35,7 +35,7 @@ import (
 	"github.com/Onkarj012/Waymark/internal/render"
 )
 
-const version = "0.3.0"
+const version = "0.4.0-dev"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -57,6 +57,12 @@ func main() {
 		err = cmdList(os.Args[2:])
 	case "get":
 		err = cmdGet(os.Args[2:])
+	case "pull":
+		err = cmdPull(os.Args[2:])
+	case "doctor":
+		err = cmdDoctor(os.Args[2:])
+	case "skill":
+		err = cmdSkill(os.Args[2:])
 	case "update":
 		err = cmdUpdate(os.Args[2:])
 	case "delete", "rm":
@@ -89,11 +95,14 @@ Setup:
   login   [--server URL] [--device-name NAME] [--read-only]
   logout                            revoke device token and forget credentials
   status                            verify authentication and show token metadata
+  doctor  [--server URL] [--json]     diagnose authentication and origin isolation
+  skill install --source DIR [--client agents|codex|claude]        install the agent skill
 
 Commands:
-  create  --title "Title" [--slug s] [--ttl N] <file|->           publish a page
+  create  --title "Title" [--slug s] [--ttl N|--permanent] <file|-> publish a page
   list    [--limit N] [--json]                                    list pages
   get     [--json] <id>                                           show page metadata
+  pull    --output FILE [--legacy-fragment] <id>                   download stored source safely
   update  [--title T] [--slug s] [--ttl N] [--if-updated-at RFC3339] <id> [<file>]  replace a page
   delete  <id>                                                    delete a page
   version                                                         print version
@@ -116,6 +125,7 @@ func cmdCreate(args []string) error {
 	title := fs.String("title", "", "page title (required)")
 	slug := fs.String("slug", "", "optional human label")
 	ttl := fs.Int("ttl", 0, "auto-delete after N days (0 = never)")
+	permanent := fs.Bool("permanent", false, "explicitly keep the page until deleted")
 	jsonOut := fs.Bool("json", false, "print the raw JSON response")
 	server := commonFlags(fs)
 	if err := parse(fs, args); err != nil {
@@ -125,6 +135,16 @@ func cmdCreate(args []string) error {
 	file := fs.Arg(0)
 	if file == "" {
 		return errors.New("missing <file> argument")
+	}
+	if fs.NArg() != 1 {
+		return errors.New("create accepts exactly one <file> argument")
+	}
+	if *permanent {
+		conflict := false
+		fs.Visit(func(option *flag.Flag) { conflict = conflict || option.Name == "ttl" })
+		if conflict {
+			return errors.New("choose --ttl or --permanent, not both")
+		}
 	}
 	if strings.TrimSpace(*title) == "" {
 		return errors.New("--title is required")
@@ -164,6 +184,9 @@ func cmdUpdate(args []string) error {
 	id := fs.Arg(0)
 	if id == "" {
 		return errors.New("missing <id> argument")
+	}
+	if fs.NArg() > 2 {
+		return errors.New("update accepts <id> and at most one <file> argument")
 	}
 	set := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { set[f.Name] = true })
@@ -214,6 +237,9 @@ func cmdList(args []string) error {
 	server := commonFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
+	}
+	if fs.NArg() != 0 {
+		return errors.New("list does not accept positional arguments")
 	}
 	c, err := newClient(server)
 	if err != nil {
@@ -277,6 +303,9 @@ func cmdDelete(args []string) error {
 	if id == "" {
 		return errors.New("missing <id> argument")
 	}
+	if fs.NArg() != 1 {
+		return errors.New("delete accepts exactly one <id> argument")
+	}
 	c, err := newClient(server)
 	if err != nil {
 		return err
@@ -294,6 +323,9 @@ func cmdLogout(args []string) error {
 	fs := flag.NewFlagSet("logout", flag.ContinueOnError)
 	if err := parse(fs, args); err != nil {
 		return err
+	}
+	if fs.NArg() != 0 {
+		return errors.New("logout does not accept positional arguments")
 	}
 	cfg, err := loadConfig()
 	if err != nil {
@@ -329,6 +361,9 @@ func cmdStatus(args []string) error {
 	if err := parse(fs, args); err != nil {
 		return err
 	}
+	if fs.NArg() != 0 {
+		return errors.New("status does not accept positional arguments")
+	}
 	srv, token, srvSrc, tokenSrc, err := resolve(*server)
 	if err != nil {
 		return err
@@ -351,6 +386,9 @@ func cmdStatus(args []string) error {
 	}
 	srv, err = normalizeServerURL(srv)
 	if err != nil {
+		return err
+	}
+	if err := checkSavedTokenOrigin(srv); err != nil {
 		return err
 	}
 
@@ -420,6 +458,9 @@ func newClient(serverFlag *string) (*client, error) {
 	if token == "" {
 		return nil, errors.New("not logged in — run `waymark login`")
 	}
+	if err := checkSavedTokenOrigin(server); err != nil {
+		return nil, err
+	}
 	return &client{base: server, token: token}, nil
 }
 
@@ -437,7 +478,7 @@ func (c *client) authInfo() (authInfoResponse, int, error) {
 		return authInfoResponse{}, 0, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
-	resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
+	resp, err := safeHTTPClient(15 * time.Second).Do(req)
 	if err != nil {
 		return authInfoResponse{}, 0, err
 	}
@@ -471,14 +512,17 @@ func (c *client) do(method, path string, body, out any) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
 
-	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	resp, err := safeHTTPClient(30 * time.Second).Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var e struct {
 			Error string `json:"error"`
 		}
@@ -547,7 +591,15 @@ func firstNonEmpty(vals ...string) string {
 }
 
 func parse(fs *flag.FlagSet, args []string) error {
-	return fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	for _, argument := range fs.Args() {
+		if argument != "-" && strings.HasPrefix(argument, "-") {
+			return errors.New("unexpected flag after positional argument; put flags before positional arguments")
+		}
+	}
+	return nil
 }
 
 func normalizeServerURL(value string) (string, error) {
@@ -556,13 +608,13 @@ func normalizeServerURL(value string) (string, error) {
 		return "", errors.New("server URL is required")
 	}
 	u, err := url.Parse(value)
-	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+	if err != nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		return "", errors.New("server URL must be an absolute http:// or https:// URL")
 	}
 	if u.User != nil {
 		return "", errors.New("server URL must not contain credentials")
 	}
-	if u.RawQuery != "" || u.Fragment != "" {
+	if u.RawQuery != "" || u.ForceQuery || strings.Contains(value, "#") {
 		return "", errors.New("server URL must not contain a query or fragment")
 	}
 	if u.Path != "" {
@@ -571,7 +623,14 @@ func normalizeServerURL(value string) (string, error) {
 	if u.Scheme == "http" && !isLoopbackHost(u.Hostname()) {
 		return "", errors.New("refusing to send credentials over plain HTTP; use HTTPS (HTTP is allowed for loopback development)")
 	}
-	return value, nil
+	u.Host = strings.ToLower(u.Host)
+	if (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80") {
+		u.Host = strings.ToLower(u.Hostname())
+		if strings.Contains(u.Host, ":") {
+			u.Host = "[" + u.Host + "]"
+		}
+	}
+	return u.String(), nil
 }
 
 func isLoopbackHost(host string) bool {

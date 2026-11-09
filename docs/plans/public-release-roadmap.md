@@ -5,6 +5,12 @@
 - Baseline: `main` at `1bee8a944de4b81e3447d94ebd8c5f8d2ab171f8`
 - Target: a useful single-owner, self-hosted public release
 
+Implementation progress: `feat/portable-publishing-foundation` implements source
+download, diagnostics, local skill installation, fork-safe free-host setup, CLI
+correctness fixes, and executable Go/Workers CI. Review, merge, and deployment
+are separate from implementation. Managed publishing, history/restore, guided
+deployment, and release distribution remain later work.
+
 ## Purpose and authorization
 
 Make Waymark easy for someone other than its author to install, diagnose, and
