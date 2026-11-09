@@ -146,7 +146,7 @@ Use `workers/test/store.test.ts:1` and existing migrations as fixture exemplars.
 
 ### PR3: Define and enforce the supported document-size contract
 
-Depends on PR2. Completes R1. In scope: CLI validation, Go and Workers handlers,
+Depends on PR2. Supports R2. In scope: CLI validation, Go and Workers handlers,
 discovery responses, shared fixtures, API tests, upgrade notes, export instructions.
 Out of scope: raising D1 limits, splitting HTML across rows, blob storage, TTL changes.
 Use `workers/src/body.ts:13`, `internal/web/server.go:485`, and raw validation tests.
@@ -203,6 +203,9 @@ Use existing `status`, config precedence, permissions tests, and setup symlink g
 - Inspect version, config source and permissions, binary location, skill target,
   origins, discovery, and auth through bounded read-only requests.
   Report unavailable account data as unknown. Never create tokens or repair state.
+  Existing authentication may perform normal bookkeeping such as updating token
+  `last_used_at`; this is permitted and must be disclosed. Doctor must not change
+  page data, token lifecycle, deployment configuration, or account resources.
 - Redact secrets from all output, including wrapped errors and server response bodies.
   Exclude token prefixes, cookies, secret environment values, and raw config dumps.
   Test sentinels in stdout, stderr, JSON, URLs, and network failure messages.
@@ -215,8 +218,11 @@ Use existing `status`, config precedence, permissions tests, and setup symlink g
 - Run `go test -count=1 ./cmd/waymark` with temporary homes, symlink conflicts,
   unavailable network, expired tokens, and differing installed description text.
   Expect idempotent installs and unchanged filesystem snapshots after doctor.
-- STOP if doctor mutates remote state, diagnostics leak a sentinel, or installation
-  overwrites a real directory or silently replaces a conflicting link.
+- Test authentication with bookkeeping both due and not due. Apart from that
+  normal bookkeeping, assert no remote application or token-lifecycle mutation.
+- STOP if doctor changes remote state beyond normal authentication bookkeeping,
+  diagnostics leak a sentinel, or installation overwrites a real directory or
+  silently replaces a conflicting link.
 
 ### PR6: Test setup docs, operating limits, and support policy
 
