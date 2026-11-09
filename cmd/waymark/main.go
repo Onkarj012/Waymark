@@ -596,6 +596,20 @@ func parse(fs *flag.FlagSet, args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	for index := 0; index < len(args)-fs.NArg(); index++ {
+		argument := args[index]
+		if argument == "--" {
+			return nil
+		}
+		if strings.Contains(argument, "=") {
+			continue
+		}
+		option := fs.Lookup(strings.TrimLeft(argument, "-"))
+		boolean, ok := option.Value.(interface{ IsBoolFlag() bool })
+		if !ok || !boolean.IsBoolFlag() {
+			index++
+		}
+	}
 	for _, argument := range fs.Args() {
 		if argument != "-" && strings.HasPrefix(argument, "-") {
 			return errors.New("unexpected flag after positional argument; put flags before positional arguments")
