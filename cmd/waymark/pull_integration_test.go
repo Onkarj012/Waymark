@@ -32,7 +32,7 @@ func TestPullAgainstGoBackend(t *testing.T) {
 	defer database.Close()
 	const token = "waymark_integration.secret"
 	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(token)))
-	if _, err := database.Exec(`INSERT INTO api_tokens (id, token_hash, display_prefix, device_label, scopes, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	if _, err := database.ExecContext(t.Context(), `INSERT INTO api_tokens (id, token_hash, display_prefix, device_label, scopes, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		"integration", digest, "waymark_integration", "test device", "pages:read pages:write", time.Now().UTC().Format(time.RFC3339Nano), time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano)); err != nil {
 		t.Fatal(err)
 	}

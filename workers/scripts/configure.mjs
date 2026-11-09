@@ -68,7 +68,7 @@ async function main() {
     const content = template
       .replaceAll("__WORKERS_SUBDOMAIN__", subdomain)
       .replaceAll("__D1_DATABASE_ID__", databaseId);
-    if (/__[A-Z_]+__/.test(content)) {
+    if (/__[A-Z0-9_]+__/.test(content)) {
       throw new Error(`Unresolved placeholder in ${role} template.`);
     }
     return { path: resolve(outputDir, `wrangler.${role}.toml`), content };

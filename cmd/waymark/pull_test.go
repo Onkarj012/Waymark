@@ -18,8 +18,9 @@ func sourceFixture(t *testing.T, mutate func(*sourceEnvelope)) (*httptest.Server
 	t.Setenv("WAYMARK_TOKEN", "")
 	t.Setenv("WAYMARK_URL", "")
 	const html = "<!DOCTYPE html>\r\n<html><head><title>café</title></head><body>你好</body></html>\r\n"
+	const publicOrigin = "https://pages.example.test"
 	digest := sha256.Sum256([]byte(html))
-	envelope := &sourceEnvelope{Schema: "waymark-source", Version: 1, PublicOrigin: "https://pages.example.test", ID: "AbCdEf123456", Title: "test", HTML: html, Raw: true, CreatedAt: "2026-11-09T09:00:00.000Z", UpdatedAt: "2026-11-09T09:01:00.120Z", UTF8Bytes: len(html), SHA256: hex.EncodeToString(digest[:])}
+	envelope := &sourceEnvelope{Schema: "waymark-source", Version: 1, PublicOrigin: publicOrigin, ID: "AbCdEf123456", Title: "test", HTML: html, Raw: true, CreatedAt: "2026-11-09T09:00:00.000Z", UpdatedAt: "2026-11-09T09:01:00.120Z", UTF8Bytes: len(html), SHA256: hex.EncodeToString(digest[:])}
 	requests := new(int)
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -30,7 +31,7 @@ func sourceFixture(t *testing.T, mutate func(*sourceEnvelope)) (*httptest.Server
 			if request.Header.Get("Authorization") != "" {
 				t.Error("discovery received credentials")
 			}
-			json.NewEncoder(writer).Encode(discoveryResponse{ControlURL: envelope.ControlOrigin, ContentURL: envelope.PublicOrigin})
+			json.NewEncoder(writer).Encode(discoveryResponse{ControlURL: envelope.ControlOrigin, ContentURL: publicOrigin})
 			return
 		}
 		*requests = *requests + 1
@@ -80,9 +81,16 @@ func TestPullPreservesSourceAndTimestamp(t *testing.T) {
 }
 
 func TestPullRejectsInvalidSourceWithoutFiles(t *testing.T) {
-	for _, rule := range []string{"checksum", "byte-count", "identity", "origin", "timestamp", "legacy"} {
+	for rule, expected := range map[string]string{
+		"checksum":   "source byte count or SHA-256 checksum does not match",
+		"byte-count": "source byte count or SHA-256 checksum does not match",
+		"identity":   "source identity or origin does not match the requested page",
+		"origin":     "source identity or origin does not match the requested page",
+		"timestamp":  "source contains an invalid timestamp",
+		"legacy":     "page is a legacy fragment",
+	} {
 		t.Run(rule, func(t *testing.T) {
-			_, envelope, _ := sourceFixture(t, func(envelope *sourceEnvelope) {
+			sourceFixture(t, func(envelope *sourceEnvelope) {
 				switch rule {
 				case "checksum":
 					envelope.SHA256 = strings.Repeat("0", 64)
@@ -92,6 +100,7 @@ func TestPullRejectsInvalidSourceWithoutFiles(t *testing.T) {
 					envelope.ID = "WrongId12345"
 				case "origin":
 					envelope.PublicOrigin = "https://evil.example.test"
+					envelope.URL = envelope.PublicOrigin + "/p/" + envelope.ID
 				case "timestamp":
 					envelope.UpdatedAt = "not-a-time"
 				case "legacy":
@@ -99,11 +108,13 @@ func TestPullRejectsInvalidSourceWithoutFiles(t *testing.T) {
 				}
 			})
 			output := filepath.Join(t.TempDir(), "report.html")
-			if err := cmdPull([]string{"--output", output, "AbCdEf123456"}); err == nil {
-				t.Fatalf("accepted invalid %s envelope %s", rule, envelope.ID)
+			if err := cmdPull([]string{"--output", output, "AbCdEf123456"}); err == nil || !strings.Contains(err.Error(), expected) {
+				t.Fatalf("invalid %s envelope: got %v, want %q", rule, err, expected)
 			}
-			if _, err := os.Lstat(output + ".source.json"); !os.IsNotExist(err) {
-				t.Fatal("invalid export left a trusted sidecar")
+			for _, path := range []string{output, output + ".source.json"} {
+				if _, err := os.Lstat(path); !os.IsNotExist(err) {
+					t.Fatalf("invalid export left %q", path)
+				}
 			}
 		})
 	}

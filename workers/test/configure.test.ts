@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,9 +12,9 @@ function outputDirectory(): string {
   return directory;
 }
 
-function configure(directory: string, extra: string[] = []) {
+function configure(directory: string, extra: string[] = [], script = resolve("scripts/configure.mjs")) {
   return spawnSync(process.execPath, [
-    resolve("scripts/configure.mjs"),
+    script,
     "--subdomain", "example-account",
     "--database-id", "00000000-0000-4000-8000-000000000001",
     "--output-dir", directory,
@@ -29,6 +29,24 @@ afterEach(() => {
 });
 
 describe("fork-safe configuration", () => {
+  it("rejects unresolved placeholders containing digits before writing either config", () => {
+    const fixture = outputDirectory();
+    const scripts = join(fixture, "scripts");
+    mkdirSync(scripts);
+    const script = join(scripts, "configure.mjs");
+    writeFileSync(script, readFileSync(resolve("scripts/configure.mjs")));
+    for (const role of ["control", "content"]) {
+      const name = `wrangler.${role}.example.toml`;
+      writeFileSync(join(fixture, name), readFileSync(resolve(name), "utf8") + "\n__D1_UNKNOWN__\n");
+    }
+    const directory = outputDirectory();
+    const result = configure(directory, [], script);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("Unresolved placeholder");
+    expect(existsSync(join(directory, "wrangler.control.toml"))).toBe(false);
+    expect(existsSync(join(directory, "wrangler.content.toml"))).toBe(false);
+  });
+
   it("creates distinct free origins without owner identifiers or custom routes", () => {
     const directory = outputDirectory();
     expect(configure(directory).status).toBe(0);
