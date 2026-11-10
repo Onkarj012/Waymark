@@ -80,6 +80,56 @@ export async function getPage(db: D1Like, id: string): Promise<Page> {
   };
 }
 
+export type SourceSnapshot = Omit<Page, "html" | "title" | "slug"> & {
+  htmlBytes: Uint8Array;
+  titleBytes: Uint8Array;
+  slugBytes: Uint8Array;
+};
+
+function sourceBytes(value: unknown): Uint8Array {
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  if (Array.isArray(value) && value.every(
+    (byte: unknown) => typeof byte === "number" && Number.isInteger(byte) && byte >= 0 && byte <= 255,
+  )) {
+    return new Uint8Array(value);
+  }
+  throw new Error("invalid source bytes");
+}
+
+export async function getPageSource(db: D1Like, id: string): Promise<SourceSnapshot> {
+  const row = await db
+    .prepare(
+      `SELECT id, CAST(title AS BLOB) AS title_bytes, CAST(slug AS BLOB) AS slug_bytes,
+       CAST(html AS BLOB) AS html_bytes, raw,
+       created_at, updated_at, expires_at FROM pages WHERE id = ?`,
+    )
+    .bind(id)
+    .first<{
+      id: string;
+      title_bytes: unknown;
+      slug_bytes: unknown;
+      html_bytes: unknown;
+      raw: number;
+      created_at: string;
+      updated_at: string;
+      expires_at: string | null;
+    }>();
+  if (!row) throw new NotFoundError("page not found");
+  return {
+    id: row.id,
+    titleBytes: sourceBytes(row.title_bytes),
+    slugBytes: sourceBytes(row.slug_bytes),
+    htmlBytes: sourceBytes(row.html_bytes),
+    raw: toBool(row.raw),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    expiresAt: row.expires_at,
+  };
+}
+
 export async function savePage(db: D1Like, p: Page): Promise<void> {
   const result = await db
     .prepare(

@@ -3,6 +3,8 @@
 package web
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Onkarj012/Waymark/internal/render"
 	"github.com/Onkarj012/Waymark/internal/store"
@@ -21,6 +24,9 @@ import (
 )
 
 const maxBodyBytes = 8 << 20 // 8 MiB cap on uploaded HTML
+
+const maxDocumentBytes = 1_000_000
+const maxMetadataBytes = 1_024
 
 // Server is the HTTP handler for Waymark.
 type Server struct {
@@ -96,6 +102,7 @@ func NewConfigured(st *store.Store, cfg Config) (*Server, error) {
 	mux.HandleFunc("POST /api/pages", s.auth("pages:write", s.handleCreate))
 	mux.HandleFunc("GET /api/pages", s.auth("pages:read", s.handleList))
 	mux.HandleFunc("GET /api/pages/{id}", s.auth("pages:read", s.handleGetMeta))
+	mux.HandleFunc("GET /api/pages/{id}/source", s.auth("pages:read", s.handleGetSource))
 	mux.HandleFunc("PUT /api/pages/{id}", s.auth("pages:write", s.handleUpdate))
 	mux.HandleFunc("DELETE /api/pages/{id}", s.auth("pages:write", s.handleDelete))
 
@@ -224,10 +231,16 @@ type pageResp struct {
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var req createReq
-	if !s.decode(w, r, &req) {
+	if !s.decodePage(w, r, &req) {
 		return
 	}
 	req.Title = strings.TrimSpace(req.Title)
+	req.Slug = strings.TrimSpace(req.Slug)
+	if !s.checkPageFieldSize(w, "title", req.Title, maxMetadataBytes) ||
+		!s.checkPageFieldSize(w, "slug", req.Slug, maxMetadataBytes) ||
+		!s.checkPageFieldSize(w, "html", req.HTML, maxDocumentBytes) {
+		return
+	}
 	if req.Title == "" {
 		s.writeErr(w, http.StatusBadRequest, "title is required")
 		return
@@ -319,9 +332,61 @@ func (s *Server) handleGetMeta(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, s.toResp(p, len(p.HTML)))
 }
 
+type sourceResp struct {
+	Schema        string  `json:"schema"`
+	Version       int     `json:"version"`
+	ControlOrigin string  `json:"control_origin"`
+	PublicOrigin  string  `json:"public_origin"`
+	ID            string  `json:"id"`
+	URL           string  `json:"url"`
+	Title         string  `json:"title"`
+	Slug          string  `json:"slug"`
+	Raw           bool    `json:"raw"`
+	CreatedAt     string  `json:"created_at"`
+	UpdatedAt     string  `json:"updated_at"`
+	ExpiresAt     *string `json:"expires_at"`
+	HTML          string  `json:"html"`
+	UTF8Bytes     int     `json:"utf8_bytes"`
+	SHA256        string  `json:"sha256"`
+}
+
+func (s *Server) handleGetSource(w http.ResponseWriter, r *http.Request) {
+	snapshot, err := s.store.GetSource(r.PathValue("id"))
+	if errors.Is(err, store.ErrNotFound) {
+		s.writeErr(w, http.StatusNotFound, "page not found")
+		return
+	}
+	if err != nil {
+		s.writeErr(w, http.StatusInternalServerError, "could not load page")
+		return
+	}
+	if snapshot.ExpiresAt != nil {
+		expires, err := time.Parse(time.RFC3339Nano, *snapshot.ExpiresAt)
+		if err != nil {
+			s.writeErr(w, http.StatusInternalServerError, "invalid page expiry")
+			return
+		}
+		if !expires.After(s.now()) {
+			s.writeErr(w, http.StatusNotFound, "page not found")
+			return
+		}
+	}
+	if !utf8.ValidString(snapshot.HTML) || !utf8.ValidString(snapshot.Title) || !utf8.ValidString(snapshot.Slug) {
+		s.writeErr(w, http.StatusUnprocessableEntity, "stored source is not valid UTF-8")
+		return
+	}
+	s.writeJSON(w, http.StatusOK, sourceResp{
+		Schema: "waymark-source", Version: 1, ControlOrigin: s.controlURL, PublicOrigin: s.baseURL,
+		ID: snapshot.ID, URL: s.pageURL(snapshot.ID), Title: snapshot.Title, Slug: snapshot.Slug,
+		Raw: snapshot.Raw, CreatedAt: snapshot.CreatedAt, UpdatedAt: snapshot.UpdatedAt,
+		ExpiresAt: snapshot.ExpiresAt, HTML: snapshot.HTML, UTF8Bytes: len(snapshot.HTML),
+		SHA256: fmt.Sprintf("%x", sha256.Sum256([]byte(snapshot.HTML))),
+	})
+}
+
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	var req updateReq
-	if !s.decode(w, r, &req) {
+	if !s.decodePage(w, r, &req) {
 		return
 	}
 	p, err := s.store.Get(r.PathValue("id"))
@@ -336,6 +401,9 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if req.Title != nil {
 		t := strings.TrimSpace(*req.Title)
+		if !s.checkPageFieldSize(w, "title", t, maxMetadataBytes) {
+			return
+		}
 		if t == "" {
 			s.writeErr(w, http.StatusBadRequest, "title cannot be empty")
 			return
@@ -343,7 +411,11 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		p.Title = t
 	}
 	if req.Slug != nil {
-		p.Slug = strings.TrimSpace(*req.Slug)
+		slug := strings.TrimSpace(*req.Slug)
+		if !s.checkPageFieldSize(w, "slug", slug, maxMetadataBytes) {
+			return
+		}
+		p.Slug = slug
 	}
 	if req.Raw != nil && !*req.Raw {
 		s.writeErr(w, http.StatusBadRequest, "raw cannot be false")
@@ -354,6 +426,9 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.HTML != nil {
+		if !s.checkPageFieldSize(w, "html", *req.HTML, maxDocumentBytes) {
+			return
+		}
 		if strings.TrimSpace(*req.HTML) == "" {
 			s.writeErr(w, http.StatusBadRequest, "html cannot be empty")
 			return
@@ -479,6 +554,83 @@ func logPath(path string) string {
 		return "/api/pages/[redacted]"
 	}
 	return path
+}
+
+func (s *Server) checkPageFieldSize(w http.ResponseWriter, field, value string, maximum int) bool {
+	if len(value) > maximum {
+		s.writeErr(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("%s exceeds maximum of %d UTF-8 bytes", field, maximum))
+		return false
+	}
+	return true
+}
+
+func validJSONUnicode(body []byte) bool {
+	if !utf8.Valid(body) {
+		return false
+	}
+	for index := 0; index < len(body); index++ {
+		if body[index] != '\\' {
+			continue
+		}
+		index++
+		if index >= len(body) || body[index] != 'u' {
+			continue
+		}
+		if index+5 > len(body) {
+			return false
+		}
+		code, err := strconv.ParseUint(string(body[index+1:index+5]), 16, 16)
+		if err != nil {
+			return false
+		}
+		index += 4
+		if code >= 0xD800 && code <= 0xDBFF {
+			if index+7 > len(body) || body[index+1] != '\\' || body[index+2] != 'u' {
+				return false
+			}
+			low, err := strconv.ParseUint(string(body[index+3:index+7]), 16, 16)
+			if err != nil || low < 0xDC00 || low > 0xDFFF {
+				return false
+			}
+			index += 6
+		} else if code >= 0xDC00 && code <= 0xDFFF {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) decodePage(w http.ResponseWriter, r *http.Request, dst any) bool {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
+	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			s.writeErr(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("request body exceeds maximum of %d bytes", maxBodyBytes))
+		} else {
+			s.writeErr(w, http.StatusBadRequest, "could not read request body")
+		}
+		return false
+	}
+	if !validJSONUnicode(body) {
+		s.writeErr(w, http.StatusBadRequest, "invalid JSON: invalid UTF-8 or unpaired Unicode surrogate")
+		return false
+	}
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		s.writeErr(w, http.StatusBadRequest, "invalid JSON: expected an object")
+		return false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		s.writeErr(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return false
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		s.writeErr(w, http.StatusBadRequest, "invalid JSON: expected exactly one object")
+		return false
+	}
+	return true
 }
 
 func (s *Server) decode(w http.ResponseWriter, r *http.Request, dst any) bool {

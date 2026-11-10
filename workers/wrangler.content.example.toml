@@ -1,0 +1,19 @@
+# Generate wrangler.content.toml with `npm run configure` before using Wrangler.
+name = "waymark-content"
+main = "src/content.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "waymark"
+database_id = "__D1_DATABASE_ID__"
+migrations_dir = "migrations"
+
+[vars]
+PUBLIC_BASE_URL = "https://waymark-content.__WORKERS_SUBDOMAIN__.workers.dev"
+CONTROL_BASE_URL = "https://waymark-control.__WORKERS_SUBDOMAIN__.workers.dev"

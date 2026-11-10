@@ -26,3 +26,9 @@
 workers/node_modules/
 workers/.wrangler/
 workers/src/theme.generated.ts
+
+# Deployment-specific configs are generated from the tracked examples.
+/workers/wrangler.control.toml
+/workers/wrangler.content.toml
+/workers/.dev.vars*
+/workers/.env*

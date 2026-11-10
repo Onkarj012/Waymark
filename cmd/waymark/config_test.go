@@ -47,9 +47,12 @@ func TestNormalizeServerURL(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "https", input: "https://pages.example.com/", want: "https://pages.example.com"},
+		{name: "normalized origin", input: "https://CONTROL.Example.com:443/", want: "https://control.example.com"},
 		{name: "localhost", input: "http://localhost:8080", want: "http://localhost:8080"},
 		{name: "ipv4 loopback", input: "http://127.0.0.1:8080", want: "http://127.0.0.1:8080"},
 		{name: "plain remote http", input: "http://pages.example.com", wantErr: true},
+		{name: "empty query", input: "https://pages.example.com?", wantErr: true},
+		{name: "empty fragment", input: "https://pages.example.com#", wantErr: true},
 		{name: "credentials", input: "https://user:pass@pages.example.com", wantErr: true},
 		{name: "path", input: "https://pages.example.com/base", wantErr: true},
 		{name: "relative", input: "pages.example.com", wantErr: true},
@@ -81,7 +84,7 @@ func TestResolveReturnsConfigParseError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, _, _, _, err := resolve(""); err == nil {
+	if _, err := resolve(""); err == nil {
 		t.Fatal("resolve() returned no error for malformed config")
 	}
 }

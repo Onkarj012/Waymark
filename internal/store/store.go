@@ -35,6 +35,17 @@ type Page struct {
 	ExpiresAt *time.Time // nil = never expires
 }
 
+type SourceSnapshot struct {
+	ID        string
+	Title     string
+	Slug      string
+	HTML      string
+	Raw       bool
+	CreatedAt string
+	UpdatedAt string
+	ExpiresAt *string
+}
+
 // Meta is page metadata without the (potentially large) HTML body, for listings.
 type Meta struct {
 	ID        string
@@ -211,6 +222,27 @@ func (s *Store) Get(id string) (*Page, error) {
 		}
 	}
 	return &p, nil
+}
+
+func (s *Store) GetSource(id string) (*SourceSnapshot, error) {
+	row := s.db.QueryRow(
+		`SELECT id, title, slug, html, raw, created_at, updated_at, expires_at
+		 FROM pages WHERE id = ?`, id)
+	var snapshot SourceSnapshot
+	var raw int
+	var expires sql.NullString
+	switch err := row.Scan(&snapshot.ID, &snapshot.Title, &snapshot.Slug, &snapshot.HTML, &raw,
+		&snapshot.CreatedAt, &snapshot.UpdatedAt, &expires); {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, ErrNotFound
+	case err != nil:
+		return nil, fmt.Errorf("get page source: %w", err)
+	}
+	snapshot.Raw = raw != 0
+	if expires.Valid {
+		snapshot.ExpiresAt = &expires.String
+	}
+	return &snapshot, nil
 }
 
 // Save overwrites an existing page's mutable fields. Returns ErrNotFound if the

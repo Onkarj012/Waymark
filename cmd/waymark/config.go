@@ -85,31 +85,47 @@ func saveConfig(c config) error {
 	return nil
 }
 
+type resolvedCredential struct {
+	token       string
+	source      string
+	boundOrigin string
+}
+
+type resolvedConfig struct {
+	server       string
+	serverSource string
+	credential   resolvedCredential
+}
+
 // resolve applies flag/env/config precedence for the server and env/config
 // precedence for the device token.
-func resolve(serverFlag string) (server, token, serverSrc, tokenSrc string, err error) {
+func resolve(serverFlag string) (resolvedConfig, error) {
 	cfg, err := loadConfig()
 	if err != nil {
-		return "", "", "", "", err
+		return resolvedConfig{}, err
 	}
+	var selected resolvedConfig
+	environmentServer := os.Getenv("WAYMARK_URL")
+	environmentToken := os.Getenv("WAYMARK_TOKEN")
 
 	switch {
 	case strings.TrimSpace(serverFlag) != "":
-		server, serverSrc = serverFlag, "flag"
-	case os.Getenv("WAYMARK_URL") != "":
-		server, serverSrc = os.Getenv("WAYMARK_URL"), "env"
+		selected.server, selected.serverSource = serverFlag, "flag"
+	case environmentServer != "":
+		selected.server, selected.serverSource = environmentServer, "env"
 	case cfg.URL != "":
-		server, serverSrc = cfg.URL, "config"
+		selected.server, selected.serverSource = cfg.URL, "config"
 	}
 
 	switch {
-	case os.Getenv("WAYMARK_TOKEN") != "":
-		token, tokenSrc = os.Getenv("WAYMARK_TOKEN"), "env"
+	case environmentToken != "":
+		selected.credential = resolvedCredential{token: strings.TrimSpace(environmentToken), source: "env"}
 	case cfg.Token != "":
-		token, tokenSrc = cfg.Token, "config"
+		selected.credential = resolvedCredential{token: strings.TrimSpace(cfg.Token), source: "config", boundOrigin: cfg.URL}
 	}
 
-	return strings.TrimRight(strings.TrimSpace(server), "/"), strings.TrimSpace(token), serverSrc, tokenSrc, nil
+	selected.server = strings.TrimRight(strings.TrimSpace(selected.server), "/")
+	return selected, nil
 }
 
 // readLine prompts on stderr and reads one visible line from stdin.

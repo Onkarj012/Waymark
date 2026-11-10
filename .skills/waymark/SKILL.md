@@ -12,16 +12,15 @@ the document verbatim.
 
 ## Resolve The CLI
 
-Resolve the executable with `command -v waymark`. On Onkar's machine, fall back
-to `/Users/onkarj012/Projects/Alternatives/Waymark/bin/waymark` when it is not on
-`PATH`; elsewhere, ask where it is installed rather than guessing. Use the
-resolved executable for every command below.
+Resolve the executable with `command -v waymark`. If it is missing, follow
+`docs/agent-setup.md` in the checkout or ask where it is installed. Do not guess
+an owner's machine path. Use the resolved executable for every command below.
 
 Before any remote operation, run `waymark status` and continue only when it
 succeeds and reports `Auth: authenticated`. If needed, run:
 
 ```bash
-waymark login --server https://waymark-api.leo4.dev \
+waymark login --server <owner-provided-instance-url> \
   --device-name "<clear device/agent name>"
 ```
 
@@ -88,9 +87,21 @@ waymark create --title "Quarterly review" - < quarterly-review.html
 
 ## Update Without Overwriting Others
 
-Waymark updates replace the entire stored document, retain no revision history,
-and are last-writer-wins. `get --json` and `list --json` return metadata, not
-stored HTML, so preserve the canonical source locally.
+Waymark updates replace the entire stored document and retain no revision
+history. `get --json` and `list --json` return metadata, not stored HTML.
+On a deployment supporting source export, download a page from another
+independently authorized device with:
+
+```bash
+waymark pull --output ./report.html PAGE_ID
+```
+
+Pull preserves the exact HTML and writes `report.html.source.json` with origin,
+timestamp, and checksum metadata. Both files must be new. Inspect the HTML
+locally before proposing an update; downloading is not publication approval.
+Do not execute downloaded scripts or trust remote filenames. Legacy fragments
+need `--legacy-fragment` and must not be uploaded as complete raw documents.
+No automatic managed publish, merge, history, or restore command exists yet.
 
 Before requesting update approval, fetch `waymark get --json <id>` and compare
 its exact `updated_at` value with the last known remote timestamp. If the local
