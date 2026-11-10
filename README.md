@@ -18,6 +18,12 @@ for reports you intend to share, not for storing secrets.
 > connecting a new device to an existing instance and deploying a new Cloudflare
 > Workers instance from scratch.
 
+## Public Release Roadmap
+
+The [public-release roadmap](docs/plans/public-release-roadmap.md) proposes
+free-domain onboarding, portable publishing, release binaries, diagnostics,
+and a tested support policy. These are planned features, not current commands.
+
 ## Quick Start
 
 ### 1. Install the CLI
